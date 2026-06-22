@@ -7,15 +7,16 @@
 
 /* Colors */
 :root {
-  --color-default: #222222;
-  --color-primary: #73A1B2;
-  --color-secondary: #595d46;
-  --color-tertiary: #46575d;
-  --color-quaternary: #eab671;
-  --color-quinary: #eab671;
-  --color-senary: #181c14;
-  --color-septenary: #ecdfcc;
-  --color-octonary: #3c3d37;
+  --color-default: #222629;      /* body text */
+  --color-primary: #5F8796;      /* hero/background blue */
+  --color-secondary: #66705A;    /* muted heritage green */
+  --color-tertiary: #40545C;     /* header/navigation blue-grey */
+  --color-quaternary: #D7A55F;   /* warm accent */
+  --color-quinary: #D7A55F;      /* same accent, if still needed */
+  --color-senary: #171C17;       /* top bar */
+  --color-septenary: #EEE8DC;    /* warm pale background */
+  --color-octonary: #343B3D;     /* dark neutral */
+
 
 
   --color-suggestion1: #46575d;
@@ -1795,12 +1796,10 @@ section {
 --------------------------------------------------------------*/
 .hero {
   max-width: 1600px;
-  /* controls the “boxed” width */
   margin: 0 auto;
-  /* centers it to create white edges */
   position: relative;
   background: var(--color-primary);
-  padding: 60px 0 0 0;
+  padding: 60px 0;
 }
 
 .hero-img {
@@ -1812,7 +1811,10 @@ section {
 }
 
 .hero-img img {
-  transform: scale(1.04);
+  display: block;
+  width: 100%;
+  height: auto;
+  transform: none;
   filter: contrast(1.05) saturate(1.05);
 }
 

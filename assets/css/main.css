@@ -16,7 +16,7 @@
   --color-senary: #171C17;       /* top bar */
   --color-septenary: #EEE8DC;    /* warm pale background */
   --color-octonary: #343B3D;     /* dark neutral */
-
+  --color-nonary: #0070C0;     /* dark neutral */
 
 
   --color-suggestion1: #46575d;
@@ -39,6 +39,8 @@
 body {
   font-family: var(--font-default);
   color: var(--color-default);
+  font-size: 20px;
+  line-height: 1.6;
 }
 
 a {
@@ -1116,7 +1118,7 @@ section {
 --------------------------------------------------------------*/
 .portfolio-details .portfolio-details-slider {
   width: 100%;
-  max-width: 1000px;
+  max-width: 1100px;
   aspect-ratio: 3 / 1;
   margin: 0 auto;
   overflow: hidden;
@@ -2871,4 +2873,758 @@ hr{
   .content-row.reverse .content-image {
     order: initial;
   }
+}
+/* New CSS modular layout START  */
+/* Main article area */
+.portfolio-description {
+  width: 100%;
+}
+
+/* Standard section */
+.article-block {
+  max-width: 1050px;
+  margin: 0 auto 90px;
+  padding: 0 24px;
+}
+
+/* One column */
+.layout-single {
+  max-width: 2000px;
+}
+
+.layout-single.centered {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Two equal columns */
+.layout-two-column {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 70px;
+  align-items: start;
+}
+
+/* Wide text left, smaller image right */
+.layout-text-image {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(260px, 0.8fr);
+  gap: 70px;
+  align-items: start;
+}
+
+/* Smaller image left, wide text right */
+.layout-image-text {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.75fr) minmax(0, 1.65fr);
+  gap: 90px;
+  align-items: start;
+}
+
+/* Larger image with text */
+.layout-feature {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 90px;
+  align-items: start;
+}
+
+/* Full-width background section */
+.article-section {
+  width: 100%;
+  margin-bottom: 90px;
+  padding: 90px 0;
+}
+
+.article-section-inner {
+  max-width: 1050px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.article-section.dark {
+  color: #ffffff;
+  background: #181818;
+}
+
+.article-section.light {
+  background: #f2f2ed;
+}
+
+/* Text */
+.content-text h2 {
+  margin: 0 0 18px;
+  font-size: 25px;
+  line-height: 1.25;
+}
+
+.content-text p,
+.article-block p,
+.article-section-inner p {
+  margin: 0 0 20px;
+ 
+  line-height: 1.7;
+}
+
+/* Images */
+.content-image {
+  margin: 0;
+}
+
+.content-image img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.content-image figcaption {
+  margin-top: 8px;
+  color: #777777;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.dark .content-image figcaption {
+  color: #bbbbbb;
+}
+
+/* Full-width image */
+.layout-full-image img {
+  width: 100%;
+}
+
+/* BERGSNIPPETS START */
+.article-callout {
+  padding: 28px 38px;
+  color: #F5F7F8;
+  background: #40566b;
+}
+
+.dark .article-callout {
+  background: #d9caea;
+}
+
+.article-callout h3 {
+  margin: 0 0 15px;
+  font-size: 18px;
+}
+
+.article-callout summary {
+  cursor: pointer;
+  margin-bottom: 15px;
+  font-weight: 700;
+}
+
+/* Quote */
+.article-quote {
+  max-width: 800px;
+  margin: 0 auto;
+  text-align: center;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+/* Quote */
+.article-quote2 {
+  max-width: 1000px;
+  margin: 0 auto;
+  text-align: center;
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.5;
+  font-style: italic;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .layout-two-column,
+  .layout-text-image,
+  .layout-image-text,
+  .layout-feature {
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+
+  .article-block {
+    margin-bottom: 55px;
+  }
+
+  .article-section {
+    margin-bottom: 55px;
+    padding: 55px 0;
+  }
+
+  .article-callout {
+    padding: 24px;
+  }
+}
+
+/* New CSS modular layout END  */
+/* DROP CAP  */
+.drop-cap p:first-of-type::first-letter {
+  float: left;
+  font-size: 64px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 7px 13px;
+  margin: 2px 15px 5px 0;
+  border: 1px solid #111;
+  font-family: HArial, sans-serif;
+}
+/* DROP CAP  */
+.breadcrumbs .page-header {
+  position: relative;
+  background-size: cover;
+  background-position: center;
+}
+
+.breadcrumbs .page-header::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.breadcrumbs .page-header .container {
+  position: relative;
+  z-index: 1;
+}
+
+.bridge-callouts {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 30px 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.bridge-callout {
+  width: 100%;
+  box-sizing: border-box;
+
+  padding: 24px 28px;
+
+  color: #fff;
+  border-radius: 12px;
+
+  position: relative;
+  overflow: hidden;
+
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.12);
+}
+
+
+
+
+/* ===== BERGSNIPPETS START ===== */
+
+.article-callout {
+  padding: 28px 38px;
+  color: #F5F7F8;
+  background: #40566b;
+}
+
+.dark .article-callout {
+  background: #d9caea;
+}
+
+.article-callout h3 {
+  margin: 0 0 15px;
+  font-size: 18px;
+}
+
+.article-callout summary {
+  cursor: pointer;
+  margin-bottom: 15px;
+  font-weight: 700;
+}
+
+
+/* ===== QUOTES ===== */
+
+.article-quote {
+  max-width: 800px;
+  margin: 0 auto;
+  text-align: center;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.article-quote2 {
+  max-width: 1000px;
+  margin: 0 auto;
+  text-align: center;
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.5;
+  font-style: italic;
+}
+
+
+/* ===== GENERAL MOBILE ===== */
+
+@media (max-width: 768px) {
+
+  .layout-two-column,
+  .layout-text-image,
+  .layout-image-text,
+  .layout-feature {
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+
+  .article-block {
+    margin-bottom: 55px;
+  }
+
+  .article-section {
+    margin-bottom: 55px;
+    padding: 55px 0;
+  }
+
+  .article-callout {
+    padding: 24px;
+  }
+}
+
+
+/* ===== DROP CAP ===== */
+
+.drop-cap p:first-of-type::first-letter {
+  float: left;
+  font-size: 64px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 7px 13px;
+  margin: 2px 15px 5px 0;
+  border: 1px solid #111;
+  font-family: Arial, sans-serif;
+}
+
+
+/* ===== PAGE HEADER OVERLAY ===== */
+
+.breadcrumbs .page-header {
+  position: relative;
+  background-size: cover;
+  background-position: center;
+}
+
+.breadcrumbs .page-header::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.breadcrumbs .page-header .container {
+  position: relative;
+  z-index: 1;
+}
+
+
+/* =========================================================
+   BRIDGE SNIPPET CALLOUTS
+   ========================================================= */
+
+
+/* Container holding all snippet cards */
+
+.bridge-callouts {
+  width: 100%;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 14px;
+
+  margin: 30px 0;
+  padding: 0;
+
+  box-sizing: border-box;
+}
+
+
+/* Individual snippet card */
+
+.bridge-callout {
+  width: 100%;
+  min-height: 170px;
+
+  box-sizing: border-box;
+
+  padding: 22px 26px;
+
+  position: relative;
+  overflow: hidden;
+
+  color: #fff;
+
+  border-radius: 12px;
+
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.12);
+}
+
+
+/* Small optional label */
+
+.bridge-callout__label {
+  display: block;
+  position: static;
+
+  margin: 0 0 6px 0;
+  padding: 0;
+
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 700;
+
+  letter-spacing: 1px;
+
+  color: #fff;
+}
+
+
+/* Card heading */
+
+.bridge-callout__title {
+  display: block;
+  position: static;
+
+  margin: 0 0 8px 0;
+  padding: 0;
+
+  font-size: 18px;
+  line-height: 1.3;
+  font-weight: 700;
+
+  color: #fff;
+}
+
+
+/* Main card text */
+
+.bridge-callout__text {
+  display: block;
+  position: static;
+
+  margin: 0;
+  padding: 0;
+
+  width: auto;
+  max-width: none;
+
+  font-size: 18px;
+  line-height: 1.55;
+  font-weight: 700;
+
+  color: #fff;
+}
+
+
+/* =========================================================
+   BLUE CARD
+   JavaScript supplies --callout-image.
+   The JPG below is only a fallback.
+   ========================================================= */
+
+.bridge-callout--blue {
+  background-image:
+    linear-gradient(
+      90deg,
+      rgba(26, 169, 213, 0.95) 0%,
+      rgba(26, 169, 213, 0.82) 50%,
+      rgba(49, 185, 219, 0.75) 100%
+    ),
+    var(
+      --callout-image,
+      url("../img/bridge-callout/bridge-callout1.jpg")
+    );
+}
+
+
+/* =========================================================
+   PURPLE CARD
+   ========================================================= */
+
+.bridge-callout--purple {
+  background-image:
+    linear-gradient(
+      90deg,
+      rgba(166, 79, 157, 0.95) 0%,
+      rgba(166, 79, 157, 0.82) 50%,
+      rgba(193, 100, 177, 0.75) 100%
+    ),
+    var(
+      --callout-image,
+      url("../img/bridge-callout/bridge-callout2.jpg")
+    );
+}
+
+
+/* =========================================================
+   GREEN CARD
+   ========================================================= */
+
+.bridge-callout--green {
+  background-image:
+    linear-gradient(
+      90deg,
+      rgba(40, 186, 99, 0.95) 0%,
+      rgba(40, 186, 99, 0.82) 50%,
+      rgba(67, 201, 120, 0.75) 100%
+    ),
+    var(
+      --callout-image,
+      url("../img/bridge-callout/bridge-callout3.jpg")
+    );
+}
+
+
+/* ===== SNIPPET MOBILE ===== */
+
+@media (max-width: 600px) {
+
+  .bridge-callouts {
+    gap: 10px;
+    margin: 20px 0;
+  }
+
+  .bridge-callout {
+    min-height: 150px;
+
+    padding: 20px;
+
+    border-radius: 10px;
+  }
+
+  .bridge-callout__title {
+    font-size: 17px;
+  }
+
+  .bridge-callout__text {
+    font-size: 16px;
+  }
+}
+
+
+/* ===== BERGSNIPPETS END ===== */
+/* ===== LARGE BERGSNIPPETS START ===== */
+
+.large-callout-section {
+  background: transparent;
+  width: 100%;
+  padding: 0;
+  margin: 55px 0;
+}
+
+
+.large-callouts {
+  width: 100%;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 18px;
+}
+
+
+/* Individual large card */
+
+.article-callout--feature {
+  width: 100%;
+  max-width: none;
+
+  box-sizing: border-box;
+
+  margin: 0;
+  padding: 38px 42px;
+
+  min-height: 300px;
+
+  position: relative;
+  overflow: hidden;
+
+  border-radius: 0;
+
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+}
+
+
+/* =========================================================
+   GRAYSCALE PHOTO LAYER
+   ========================================================= */
+
+.article-callout--feature::before {
+  content: "";
+
+  position: absolute;
+  inset: 0;
+
+  background-image: var(--large-callout-image, none);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+
+  filter: grayscale(100%) contrast(1.05);
+
+  opacity: 0.55;
+
+  z-index: 0;
+}
+
+
+/* =========================================================
+   COLOUR OVERLAY
+   ========================================================= */
+
+.article-callout--feature::after {
+  content: "";
+
+  position: absolute;
+  inset: 0;
+
+  background: var(--large-callout-overlay);
+
+  z-index: 1;
+}
+
+
+/* Heading */
+
+.article-callout--feature h3 {
+  position: relative;
+  z-index: 2;
+
+  margin: 0 0 14px;
+
+  font-size: 20px;
+  font-weight: 700;
+
+  color: #fff;
+}
+
+
+/* Text */
+
+.article-callout--feature p {
+  position: relative;
+  z-index: 2;
+
+  margin: 0;
+
+  font-size: 18px;
+  line-height: 1.6;
+
+  color: #fff;
+}
+
+
+/* =========================================================
+   GREY
+   ========================================================= */
+
+.article-callout--grey {
+  background-color: #747f8b;
+
+  --large-callout-overlay:
+    rgba(116, 127, 139, 0.68);
+}
+
+
+/* =========================================================
+   CHARCOAL
+   ========================================================= */
+
+.article-callout--charcoal {
+  background-color: #3d454d;
+
+  --large-callout-overlay:
+    rgba(61, 69, 77, 0.68);
+}
+
+
+/* =========================================================
+   NAVY
+   ========================================================= */
+
+.article-callout--navy {
+  background-color: #304b63;
+
+  --large-callout-overlay:
+    rgba(48, 75, 99, 0.68);
+}
+
+
+/* ===== MOBILE ===== */
+
+@media (max-width: 768px) {
+
+  .article-callout--feature {
+    min-height: 250px;
+    padding: 28px 24px;
+  }
+
+  .article-callout--feature h3 {
+    font-size: 18px;
+  }
+
+  .article-callout--feature p {
+    font-size: 16px;
+  }
+
+}
+
+
+/* ===== LARGE BERGSNIPPETS END ===== */
+
+/* ===== BERG DIVIDER HORIZONTAL RULE ===== */
+
+.berg-divider {
+  border: 0;
+  height: 3px;
+  margin: 70px auto;
+
+  width: 100%;
+  max-width: 1050px;
+
+  background:
+  linear-gradient(
+    to right,
+    rgba(64, 86, 107, 0.50) 0%,
+    #62717d 15%,
+    #40566b 50%,
+    #62717d 85%,
+    rgba(64, 86, 107, 0.50) 100%
+  );
+
+  position: relative;
+  overflow: visible;
+}
+
+
+/* Small structural diamond */
+
+.berg-divider::after {
+  content: "";
+
+  position: absolute;
+  left: 50%;
+  top: 50%;
+
+  width: 10px;
+  height: 10px;
+
+  background: #40566b;
+
+  transform:
+    translate(-50%, -50%)
+    rotate(45deg);
 }

@@ -1,0 +1,42 @@
+ok here is a new promt to follow, ill paste the HTML and Text for insertion after
+
+lets try a new page again ok? 
+
+Keep the tabbing as is. 
+
+Ideally I will sort the images. 
+
+What i need you to do is randomise the sections adn fit in the words from the document i pass you next. Does that make sense?
+
+I dont want any links changed, nor do i want images changed. I just want the text sections updatinng with the text document ill post you.
+
+so yyou can move or delete a section, duplicate a section, channge a title, just donnt change the images, i will do that. 
+
+only use the DROP CAP once. 
+
+I dont want the snippets sections bbeing ussed consequitively, just choose one or two for the full article, that is ONE individual snippet (not a section of three). 
+
+I dont want any of this changing:
+
+
+                <!-- =========================================================
+                LAYOUT: IMAGE RIGHT DROP CAP END
+                ========================================================== -->
+
+no comments changing.
+
+Follow these rules: 
+
+Do not change any href links
+Do not change any image src paths
+Use the drop-cap layout only once
+Randomise/reorder the content sections, but keep them in line with how the text is given
+I can move, remove, duplicate, or repurpose sections where needed
+I can change headings/titles to suit the new article
+Use only one or two individual Berg snippets across the whole article
+Do not use snippet sections consecutively
+Do not use a three-snippet group
+Fit the text you provide into the existing page structure rather than changing the image setup
+You’ll handle the actual image choices yourself
+Do not change anything in the header or footer
+Do not change anything in the hero section 

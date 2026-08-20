@@ -72,6 +72,24 @@ section {
   overflow: clip;
 }
 
+/*--------------------------------------------------------------
+# In line override of contexts blocks start
+--------------------------------------------------------------*/
+
+section.content-row {
+  padding-top: 0;
+  padding-bottom: 0;
+  overflow: visible;
+}
+
+section.article-block {
+  padding-top: 0;
+  padding-bottom: 0;
+  overflow: visible;
+}
+/*--------------------------------------------------------------
+# In line override of contexts blocks end
+--------------------------------------------------------------*/
 .sections-bg {
   background-color: #f6f6f6;
 }
@@ -1124,6 +1142,11 @@ section {
   overflow: hidden;
 }
 
+.portfolio-details .portfolio-details-slider .swiper-pagination {
+  bottom: 12px !important;
+  z-index: 10;
+}
+
 .portfolio-details .portfolio-details-slider .swiper-slide {
   height: 100%;
 }
@@ -1138,7 +1161,7 @@ section {
 .portfolio-details .portfolio-details-slider .swiper-pagination .swiper-pagination-bullet {
   width: 12px;
   height: 12px;
-  background-color: rgba(255, 255, 255, 0.7);
+  background-color: rgba(255, 255, 255, 0.9);
   opacity: 1;
 }
 
@@ -2838,6 +2861,9 @@ hr{
   align-items: start;
   margin-bottom: 70px;
 }
+.content-row.image-right-large {
+  grid-template-columns: minmax(280px, 0.8fr) minmax(0, 1.2fr);
+}
 
 .content-row.reverse .content-text {
   order: 2;
@@ -2868,6 +2894,16 @@ hr{
     gap: 24px;
     margin-bottom: 45px;
   }
+  /* Force large image-right layout back to one column on mobile */
+  .content-row.image-right-large {
+    grid-template-columns: 1fr;
+  }
+
+  .content-row.reverse .content-text,
+  .content-row.reverse .content-image {
+    order: initial;
+  }
+
 
   .content-row.reverse .content-text,
   .content-row.reverse .content-image {
@@ -2898,6 +2934,16 @@ hr{
 }
 
 /* Two equal columns */
+
+/* Two-column article section aligns with content rows */
+.article-block.layout-two-column,
+.article-block.layout-text-image,
+.article-block.layout-image-text,
+.article-block.layout-feature {
+  max-width: 1200px;
+  padding-left: 0;
+  padding-right: 0;
+}
 .layout-two-column {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2965,6 +3011,8 @@ hr{
  
   line-height: 1.7;
 }
+
+
 
 /* Images */
 .content-image {
@@ -3190,6 +3238,108 @@ hr{
   }
 }
 
+/* =========================================================
+   TALL IMAGE RIGHT
+   Text left / portrait image right
+   ========================================================= */
+
+.article-block.layout-tall-image-right {
+  max-width: 1200px;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.layout-tall-image-right {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 420px;
+  gap: 70px;
+  align-items: start;
+}
+
+.layout-tall-image-right .content-image {
+  width: 100%;
+  justify-self: end;
+}
+
+.layout-tall-image-right .content-image img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+
+/* =========================================================
+   TALL IMAGE LEFT
+   Portrait image left / text right
+   ========================================================= */
+
+.article-block.layout-tall-image-left {
+  max-width: 1200px;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.layout-tall-image-left {
+  display: grid;
+  grid-template-columns: 420px minmax(0, 1fr);
+  gap: 70px;
+  align-items: start;
+}
+
+.layout-tall-image-left .content-image {
+  width: 100%;
+  justify-self: start;
+}
+
+.layout-tall-image-left .content-image img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+/* =========================================================
+   TALL IMAGE LAYOUTS — MOBILE
+   MUST COME AFTER DESKTOP RULES
+   ========================================================= */
+
+@media (max-width: 768px) {
+
+  .article-block.layout-tall-image-right,
+  .article-block.layout-tall-image-left {
+    grid-template-columns: 1fr;
+    gap: 30px;
+    width: 100%;
+    max-width: 100%;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .layout-tall-image-right .content-image,
+  .layout-tall-image-left .content-image {
+    width: 100%;
+    max-width: 100%;
+    justify-self: stretch;
+  }
+
+  .layout-tall-image-right .content-image img,
+  .layout-tall-image-left .content-image img {
+    width: 100%;
+    height: auto;
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /* ===== DROP CAP ===== */
 
@@ -3230,7 +3380,11 @@ hr{
    BRIDGE SNIPPET CALLOUTS
    ========================================================= */
 
-
+.article-block.berg-snippet-section {
+  max-width: 1100px;
+  padding-left: 0;
+  padding-right: 0;
+}
 /* Container holding all snippet cards */
 
 .bridge-callouts {
@@ -3522,7 +3676,7 @@ hr{
 
   font-size: 18px;
   line-height: 1.6;
-
+  font-weight: 700;
   color: #fff;
 }
 
@@ -3589,7 +3743,7 @@ hr{
 
 .berg-divider {
   border: 0;
-  height: 3px;
+  height: 2px;
   margin: 70px auto;
 
   width: 100%;

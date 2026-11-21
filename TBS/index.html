@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#28536B">
+<title>TBS location lookup | The BERG</title>
+<link rel="icon" href="../assets/img/favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="../assets/img/apple-touch-icon.png">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root { --ink:#1c2a33; --muted:#5f6f7a; --line:#d7dee3; --teal:#28536B; --bg:#f4f6f8; --card:#fff; --red:#b3261e; --green:#1a7f37; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; color:var(--ink); background:var(--bg); }
+  header { background:var(--teal); color:#fff; padding:18px 20px 14px; }
+  header a { color:#fff; opacity:.85; font-size:13px; text-decoration:none; }
+  header h1 { margin:6px 0 0; font-size:22px; }
+  header p { margin:4px 0 0; opacity:.85; font-size:14px; }
+  main { max-width:960px; margin:0 auto; padding:16px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; margin-bottom:14px; }
+  h2 { font-size:17px; margin:0 0 10px; }
+  label { display:block; font-weight:600; font-size:14px; margin-bottom:6px; }
+  textarea, input[type=text], input[type=password] { width:100%; font:inherit; padding:12px; border:1px solid var(--line); border-radius:10px; background:#fff; color:var(--ink); }
+  textarea { min-height:100px; resize:vertical; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:15px; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  button { font:inherit; font-weight:600; border:0; border-radius:12px; padding:12px 18px; cursor:pointer; min-height:46px; }
+  button:disabled { opacity:.5; cursor:default; }
+  .primary { background:var(--teal); color:#fff; }
+  .ghost { background:#e9eef2; color:var(--ink); }
+  .hint { color:var(--muted); font-size:13px; margin:8px 0 0; }
+  .hint a { color:var(--teal); }
+  .drop { border:2px dashed #9fb3bf; border-radius:14px; padding:28px 16px; text-align:center; color:var(--muted); background:#fbfcfd; cursor:pointer; }
+  .drop.over { border-color:var(--teal); background:#eef4f7; color:var(--ink); }
+  .drop input { display:none; }
+  .status { font-size:14px; color:var(--muted); min-height:20px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; margin-top:10px; }
+  th, td { text-align:left; padding:7px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { background:#eef2f5; position:sticky; top:0; }
+  .tablewrap { overflow:auto; max-height:60vh; border:1px solid var(--line); border-radius:10px; }
+  .filled { color:var(--green); }
+  .kept { color:var(--muted); }
+  .error { color:var(--red); font-weight:600; }
+  .words a { color:var(--teal); font-weight:700; text-decoration:none; }
+  details summary { cursor:pointer; font-weight:600; font-size:14px; }
+  .result { border-top:1px solid var(--line); padding:12px 0; }
+  .result:first-child { border-top:0; padding-top:0; }
+  .meta { color:var(--muted); font-size:14px; }
+  .meta b { color:var(--ink); font-weight:600; }
+  .links a { display:inline-block; margin:6px 12px 0 0; color:var(--teal); font-weight:600; font-size:14px; }
+  .hosp { margin-top:6px; font-size:14px; }
+</style>
+</head>
+<body>
+<header>
+  <a href="../">← The BERG</a>
+  <h1>TBS location lookup</h1>
+  <p>Drop in the workbank: OS Ref → nearest postcode, what3words and nearest A&amp;E, filled into the blank cells.</p>
+</header>
+<main>
+  <div class="card">
+    <h2>1. Workbank (Excel)</h2>
+    <label class="drop" id="drop">
+      <input type="file" id="file" accept=".xlsx,.xlsm,.xls,.csv">
+      <div><b>Drop the Excel workbank here</b> or tap to choose</div>
+      <div class="hint">First sheet is used. Needs an <b>OS Ref</b> column. Blank <b>Postcode</b>, <b>What3Words</b> and <b>Hospital</b> cells are filled; anything already typed in is kept. Columns are added if missing.</div>
+    </label>
+    <div class="row" style="margin-top:12px">
+      <button class="primary" id="run" disabled>Look up blanks</button>
+      <button class="ghost" id="download" disabled>Download filled workbook</button>
+      <button class="ghost" id="copy" disabled>Copy table</button>
+      <span class="status" id="status"></span>
+    </div>
+    <p class="hint">The downloaded workbook has the same sheets and data; cell formatting, formulas and macros are not kept, so if your workbank has those, copy the three columns from the table back into your own file instead.</p>
+    <div class="tablewrap" id="tablewrap" hidden><table id="table"></table></div>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>Or type grid references</summary>
+      <div style="margin-top:10px">
+        <textarea id="refs" placeholder="ST 1835 7640&#10;AYT/43: SO 5012 2043&#10;318350, 176400"></textarea>
+        <p class="hint">One per line, any precision, or easting, northing. A name before a colon labels it.</p>
+        <div class="row" style="margin-top:10px"><button class="primary" id="go">Convert</button></div>
+        <div id="out" style="margin-top:12px"></div>
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <details id="keybox">
+      <summary>what3words API key</summary>
+      <div style="margin-top:10px">
+        <input type="password" id="key" placeholder="Paste your what3words API key" autocomplete="off">
+        <p class="hint">Free from <a href="https://developer.what3words.com/" target="_blank" rel="noopener">developer.what3words.com</a>. Kept only in this browser. Without a key, postcode and A&amp;E still fill; What3Words is left blank.</p>
+      </div>
+    </details>
+  </div>
+  <p class="hint">Grid refs are converted at the centre of their square (a 6-figure ref is a 100 m square). Postcode is the nearest within 2 km (postcodes.io). A&amp;E is the nearest consultant-led 24-hour emergency department from a built-in UK list (Nov 2026), straight-line distance. Check before relying on any of it for a RAMS.</p>
+</main>
+<script>
+
+// OS National Grid (OSGB36, Airy 1830) -> WGS84 lat/lon. Helmert 7-parameter, ~3-5 m.
+function parseGridRef(text) {
+  const t = text.trim().toUpperCase().replace(/[^A-Z0-9., ]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!t) return null;
+  // Numeric easting, northing: "312345, 178901" or "312345 178901"
+  let m = t.match(/^(\d{5,7})(?:\.\d+)?[ ,]+(\d{5,7})(?:\.\d+)?$/);
+  if (m) return { e: +m[1], n: +m[2], size: 1, label: `${m[1]}, ${m[2]}` };
+  // Letters + digits: "ST 123 456", "ST123456", "ST 12345 67890"
+  m = t.match(/^([HJNOST][A-HJ-Z]) ?(\d+)(?: ?(\d+))?$/);
+  if (!m) return null;
+  let digits = m[3] !== undefined ? m[2] + m[3] : m[2];
+  if (m[3] !== undefined && m[2].length !== m[3].length) return null;
+  if (digits.length % 2 !== 0 || digits.length < 2 || digits.length > 10) return null;
+  const half = digits.length / 2;
+  const l1 = m[1].charCodeAt(0) - 65, l2 = m[1].charCodeAt(1) - 65;
+  const a1 = l1 > 7 ? l1 - 1 : l1, a2 = l2 > 7 ? l2 - 1 : l2;   // skip I
+  const e100 = ((a1 - 2) % 5) * 5 + (a2 % 5);
+  const n100 = 19 - Math.floor(a1 / 5) * 5 - Math.floor(a2 / 5);
+  if (e100 < 0 || e100 > 6 || n100 < 0 || n100 > 12) return null;
+  const size = Math.pow(10, 5 - half);
+  const e = e100 * 100000 + (+digits.slice(0, half)) * size + size / 2;   // square centre
+  const n = n100 * 100000 + (+digits.slice(half)) * size + size / 2;
+  return { e, n, size, label: `${m[1]} ${digits.slice(0, half)} ${digits.slice(half)}` };
+}
+function osgbToLatLon(E, N) {
+  const a = 6377563.396, b = 6356256.909, F0 = 0.9996012717;
+  const lat0 = 49 * Math.PI / 180, lon0 = -2 * Math.PI / 180, N0 = -100000, E0 = 400000;
+  const e2 = 1 - (b * b) / (a * a), n = (a - b) / (a + b), n2 = n * n, n3 = n * n * n;
+  let lat = lat0, M = 0;
+  do {
+    lat = (N - N0 - M) / (a * F0) + lat;
+    const Ma = (1 + n + 1.25 * n2 + 1.25 * n3) * (lat - lat0);
+    const Mb = (3 * n + 3 * n2 + 2.625 * n3) * Math.sin(lat - lat0) * Math.cos(lat + lat0);
+    const Mc = (1.875 * n2 + 1.875 * n3) * Math.sin(2 * (lat - lat0)) * Math.cos(2 * (lat + lat0));
+    const Md = (35 / 24) * n3 * Math.sin(3 * (lat - lat0)) * Math.cos(3 * (lat + lat0));
+    M = b * F0 * (Ma - Mb + Mc - Md);
+  } while (N - N0 - M >= 0.00001);
+  const cosLat = Math.cos(lat), sinLat = Math.sin(lat), tanLat = Math.tan(lat);
+  const nu = a * F0 / Math.sqrt(1 - e2 * sinLat * sinLat);
+  const rho = a * F0 * (1 - e2) / Math.pow(1 - e2 * sinLat * sinLat, 1.5);
+  const eta2 = nu / rho - 1;
+  const t2 = tanLat * tanLat, t4 = t2 * t2, t6 = t4 * t2;
+  const VII = tanLat / (2 * rho * nu);
+  const VIII = tanLat / (24 * rho * nu ** 3) * (5 + 3 * t2 + eta2 - 9 * t2 * eta2);
+  const IX = tanLat / (720 * rho * nu ** 5) * (61 + 90 * t2 + 45 * t4);
+  const X = 1 / (cosLat * nu);
+  const XI = 1 / (cosLat * 6 * nu ** 3) * (nu / rho + 2 * t2);
+  const XII = 1 / (cosLat * 120 * nu ** 5) * (5 + 28 * t2 + 24 * t4);
+  const XIIA = 1 / (cosLat * 5040 * nu ** 7) * (61 + 662 * t2 + 1320 * t4 + 720 * t6);
+  const dE = E - E0;
+  const phi = lat - VII * dE ** 2 + VIII * dE ** 4 - IX * dE ** 6;
+  const lam = lon0 + X * dE - XI * dE ** 3 + XII * dE ** 5 - XIIA * dE ** 7;
+  return helmertToWgs84(phi, lam, a, b);
+}
+function helmertToWgs84(phi, lam, a1, b1) {
+  // OSGB36 -> WGS84 (OS published parameters)
+  const tx = 446.448, ty = -125.157, tz = 542.060;
+  const rx = 0.1502 / 3600 * Math.PI / 180, ry = 0.2470 / 3600 * Math.PI / 180, rz = 0.8421 / 3600 * Math.PI / 180;
+  const s = -20.4894e-6;
+  const e2a = 1 - (b1 * b1) / (a1 * a1);
+  const sinP = Math.sin(phi), cosP = Math.cos(phi), sinL = Math.sin(lam), cosL = Math.cos(lam);
+  const nu1 = a1 / Math.sqrt(1 - e2a * sinP * sinP);
+  const x1 = nu1 * cosP * cosL, y1 = nu1 * cosP * sinL, z1 = (1 - e2a) * nu1 * sinP;
+  const x2 = tx + (1 + s) * x1 - rz * y1 + ry * z1;
+  const y2 = ty + rz * x1 + (1 + s) * y1 - rx * z1;
+  const z2 = tz - ry * x1 + rx * y1 + (1 + s) * z1;
+  const a = 6378137.0, b = 6356752.3142, e2 = 1 - (b * b) / (a * a);
+  const p = Math.sqrt(x2 * x2 + y2 * y2);
+  let lat = Math.atan2(z2, p * (1 - e2)), latP = 2 * Math.PI, nu;
+  while (Math.abs(lat - latP) > 1e-12) {
+    nu = a / Math.sqrt(1 - e2 * Math.sin(lat) ** 2);
+    latP = lat;
+    lat = Math.atan2(z2 + e2 * nu * Math.sin(lat), p);
+  }
+  return { lat: lat * 180 / Math.PI, lon: Math.atan2(y2, x2) * 180 / Math.PI };
+}
+
+const AE_SITES = [
+// ---- Wales
+["Morriston Hospital, Swansea", 51.6786, -3.9339],
+["Princess of Wales Hospital, Bridgend", 51.5125, -3.5841],
+["University Hospital of Wales, Cardiff", 51.5071, -3.1888],
+["The Grange University Hospital, Cwmbran", 51.6490, -3.0417],
+["Prince Charles Hospital, Merthyr Tydfil", 51.7575, -3.3870],
+["Royal Glamorgan Hospital, Llantrisant", 51.5577, -3.3996],
+["Glangwili General Hospital, Carmarthen", 51.8613, -4.2960],
+["Withybush General Hospital, Haverfordwest", 51.8127, -4.9634],
+["Bronglais General Hospital, Aberystwyth", 52.4167, -4.0700],
+["Wrexham Maelor Hospital", 53.0479, -3.0043],
+["Ysbyty Gwynedd, Bangor", 53.2095, -4.1596],
+["Ysbyty Glan Clwyd, Bodelwyddan", 53.2777, -3.4971],
+// ---- South West England
+["Bristol Royal Infirmary", 51.4586, -2.5963],
+["Bristol Royal Hospital for Children", 51.4578, -2.5986],
+["Southmead Hospital, Bristol", 51.4967, -2.5914],
+["Weston General Hospital, Weston-super-Mare", 51.3248, -2.9663],
+["Royal United Hospital, Bath", 51.3912, -2.3897],
+["Great Western Hospital, Swindon", 51.5395, -1.7318],
+["Gloucestershire Royal Hospital, Gloucester", 51.8657, -2.2277],
+["Cheltenham General Hospital", 51.8927, -2.0715],
+["Musgrove Park Hospital, Taunton", 51.0109, -3.1197],
+["Yeovil District Hospital", 50.9468, -2.6382],
+["Royal Devon and Exeter Hospital (Wonford)", 50.7169, -3.5069],
+["North Devon District Hospital, Barnstaple", 51.0929, -4.0616],
+["Torbay Hospital, Torquay", 50.4809, -3.5547],
+["Derriford Hospital, Plymouth", 50.4168, -4.1133],
+["Royal Cornwall Hospital, Truro", 50.2660, -5.0926],
+["Salisbury District Hospital", 51.0433, -1.7893],
+["Dorset County Hospital, Dorchester", 50.7142, -2.4453],
+["Royal Bournemouth Hospital", 50.7466, -1.8347],
+["Poole Hospital", 50.7282, -1.9837],
+// ---- South East England
+["Southampton General Hospital", 50.9330, -1.4342],
+["Queen Alexandra Hospital, Portsmouth", 50.8498, -1.0697],
+["St Mary's Hospital, Newport, Isle of Wight", 50.7097, -1.3016],
+["Basingstoke and North Hampshire Hospital", 51.2792, -1.1152],
+["Royal Hampshire County Hospital, Winchester", 51.0611, -1.3220],
+["Frimley Park Hospital, Camberley", 51.3078, -0.7503],
+["Wexham Park Hospital, Slough", 51.5296, -0.5780],
+["Royal Berkshire Hospital, Reading", 51.4485, -0.9613],
+["John Radcliffe Hospital, Oxford", 51.7636, -1.2197],
+["Horton General Hospital, Banbury", 52.0507, -1.3389],
+["Stoke Mandeville Hospital, Aylesbury", 51.7954, -0.8028],
+["Wycombe Hospital (Minor injuries only – excluded)", 0, 0],
+["Milton Keynes University Hospital", 52.0257, -0.7360],
+["Royal Surrey County Hospital, Guildford", 51.2410, -0.6087],
+["St Peter's Hospital, Chertsey", 51.3806, -0.5302],
+["East Surrey Hospital, Redhill", 51.2208, -0.1612],
+["Epsom Hospital", 51.3298, -0.2749],
+["Queen Elizabeth the Queen Mother Hospital, Margate", 51.3807, 1.3617],
+["William Harvey Hospital, Ashford", 51.1404, 0.9087],
+["Kent and Canterbury Hospital (no A&E – excluded)", 0, 0],
+["Medway Maritime Hospital, Gillingham", 51.3927, 0.5446],
+["Darent Valley Hospital, Dartford", 51.4358, 0.2512],
+["Maidstone Hospital", 51.2746, 0.4785],
+["Tunbridge Wells Hospital, Pembury", 51.1483, 0.3265],
+["Conquest Hospital, Hastings", 50.8870, 0.5604],
+["Eastbourne District General Hospital", 50.7894, 0.2703],
+["Royal Sussex County Hospital, Brighton", 50.8196, -0.1180],
+["Princess Royal Hospital, Haywards Heath", 51.0100, -0.0985],
+["Worthing Hospital", 50.8207, -0.3778],
+["St Richard's Hospital, Chichester", 50.8445, -0.7672],
+// ---- London
+["St Thomas' Hospital", 51.4989, -0.1181],
+["King's College Hospital, Denmark Hill", 51.4685, -0.0939],
+["Princess Royal University Hospital, Orpington", 51.3732, 0.0516],
+["University College Hospital", 51.5246, -0.1364],
+["Royal Free Hospital, Hampstead", 51.5532, -0.1655],
+["Barnet Hospital", 51.6503, -0.2136],
+["Royal London Hospital, Whitechapel", 51.5181, -0.0594],
+["Whipps Cross University Hospital", 51.5786, 0.0027],
+["Newham University Hospital", 51.5225, 0.0348],
+["Homerton University Hospital", 51.5509, -0.0459],
+["Whittington Hospital", 51.5656, -0.1385],
+["North Middlesex University Hospital", 51.6133, -0.0735],
+["St Mary's Hospital, Paddington", 51.5174, -0.1735],
+["Charing Cross Hospital", 51.4867, -0.2199],
+["Chelsea and Westminster Hospital", 51.4845, -0.1817],
+["West Middlesex University Hospital", 51.4728, -0.3225],
+["Northwick Park Hospital, Harrow", 51.5755, -0.3207],
+["Ealing Hospital", 51.5066, -0.3450],
+["Hillingdon Hospital", 51.5263, -0.4548],
+["St George's Hospital, Tooting", 51.4269, -0.1750],
+["Croydon University Hospital", 51.3886, -0.1091],
+["St Helier Hospital, Carshalton", 51.3804, -0.1826],
+["Kingston Hospital", 51.4142, -0.2832],
+["Queen Elizabeth Hospital, Woolwich", 51.4779, 0.0501],
+["University Hospital Lewisham", 51.4538, -0.0200],
+["Queen's Hospital, Romford", 51.5698, 0.1820],
+["King George Hospital, Goodmayes", 51.5771, 0.0989],
+// ---- East of England
+["Addenbrooke's Hospital, Cambridge", 52.1753, 0.1403],
+["Peterborough City Hospital", 52.5852, -0.2746],
+["Hinchingbrooke Hospital, Huntingdon", 52.3417, -0.1958],
+["Norfolk and Norwich University Hospital", 52.6182, 1.2215],
+["James Paget University Hospital, Gorleston", 52.5805, 1.7200],
+["Queen Elizabeth Hospital, King's Lynn", 52.7634, 0.4306],
+["Ipswich Hospital", 52.0547, 1.1950],
+["West Suffolk Hospital, Bury St Edmunds", 52.2334, 0.7006],
+["Colchester Hospital", 51.9124, 0.9124],
+["Broomfield Hospital, Chelmsford", 51.7701, 0.4641],
+["Southend University Hospital", 51.5528, 0.6999],
+["Basildon University Hospital", 51.5584, 0.4517],
+["Princess Alexandra Hospital, Harlow", 51.7726, 0.0858],
+["Lister Hospital, Stevenage", 51.9229, -0.2157],
+["Watford General Hospital", 51.6498, -0.4027],
+["Luton and Dunstable University Hospital", 51.8947, -0.4619],
+["Bedford Hospital", 52.1283, -0.4681],
+// ---- East Midlands
+["Queen's Medical Centre, Nottingham", 52.9430, -1.1856],
+["King's Mill Hospital, Sutton-in-Ashfield", 53.1277, -1.2315],
+["Royal Derby Hospital", 52.9109, -1.5116],
+["Chesterfield Royal Hospital", 53.2389, -1.3926],
+["Leicester Royal Infirmary", 52.6271, -1.1346],
+["Northampton General Hospital", 52.2326, -0.8885],
+["Kettering General Hospital", 52.3982, -0.7324],
+["Lincoln County Hospital", 53.2379, -0.5281],
+["Pilgrim Hospital, Boston", 52.9880, -0.0343],
+// ---- West Midlands
+["Queen Elizabeth Hospital Birmingham", 52.4530, -1.9389],
+["Heartlands Hospital, Birmingham", 52.4801, -1.8291],
+["Good Hope Hospital, Sutton Coldfield", 52.5774, -1.8232],
+["Birmingham Children's Hospital", 52.4855, -1.8938],
+["Midland Metropolitan University Hospital, Smethwick", 52.4955, -1.9690],
+["Russells Hall Hospital, Dudley", 52.4993, -2.1157],
+["New Cross Hospital, Wolverhampton", 52.5991, -2.0938],
+["Walsall Manor Hospital", 52.5786, -1.9955],
+["University Hospital Coventry", 52.4213, -1.4383],
+["Warwick Hospital", 52.2881, -1.5838],
+["George Eliot Hospital, Nuneaton", 52.5115, -1.4749],
+["Royal Stoke University Hospital", 53.0040, -2.2117],
+["County Hospital, Stafford (part-time A&E)", 52.8070, -2.1092],
+["Queen's Hospital, Burton upon Trent", 52.8178, -1.6594],
+["Royal Shrewsbury Hospital", 52.7093, -2.7937],
+["Princess Royal Hospital, Telford", 52.7097, -2.5094],
+["Worcestershire Royal Hospital", 52.1921, -2.1813],
+["Alexandra Hospital, Redditch", 52.3041, -1.9335],
+["Hereford County Hospital", 52.0599, -2.7053],
+// ---- North West England
+["Manchester Royal Infirmary", 53.4621, -2.2258],
+["Royal Manchester Children's Hospital", 53.4625, -2.2270],
+["Wythenshawe Hospital", 53.3880, -2.2920],
+["North Manchester General Hospital", 53.5178, -2.2225],
+["Salford Royal Hospital", 53.4876, -2.3244],
+["Royal Oldham Hospital", 53.5533, -2.1113],
+["Fairfield General Hospital, Bury", 53.5996, -2.2643],
+["Royal Bolton Hospital", 53.5540, -2.4356],
+["Royal Albert Edward Infirmary, Wigan", 53.5531, -2.6370],
+["Stepping Hill Hospital, Stockport", 53.3821, -2.1360],
+["Tameside General Hospital", 53.4968, -2.0890],
+["Macclesfield District General Hospital", 53.2452, -2.1297],
+["Leighton Hospital, Crewe", 53.1259, -2.4832],
+["Countess of Chester Hospital", 53.2049, -2.9025],
+["Warrington Hospital", 53.3920, -2.6055],
+["Whiston Hospital", 53.4199, -2.7800],
+["Royal Liverpool University Hospital", 53.4103, -2.9661],
+["Aintree University Hospital", 53.4707, -2.9330],
+["Alder Hey Children's Hospital", 53.4195, -2.8977],
+["Arrowe Park Hospital, Wirral", 53.3689, -3.0984],
+["Southport and Formby District General Hospital", 53.6598, -2.9885],
+["Royal Preston Hospital", 53.7915, -2.7059],
+["Royal Blackburn Teaching Hospital", 53.7373, -2.4584],
+["Blackpool Victoria Hospital", 53.8213, -3.0170],
+["Royal Lancaster Infirmary", 54.0408, -2.7963],
+["Furness General Hospital, Barrow-in-Furness", 54.1366, -3.2002],
+["Westmorland General Hospital (no A&E – excluded)", 0, 0],
+["Cumberland Infirmary, Carlisle", 54.8954, -2.9596],
+["West Cumberland Hospital, Whitehaven", 54.5330, -3.5660],
+// ---- Yorkshire and the Humber
+["Leeds General Infirmary", 53.8012, -1.5513],
+["St James's University Hospital, Leeds", 53.8077, -1.5203],
+["Bradford Royal Infirmary", 53.8070, -1.7940],
+["Airedale General Hospital, Keighley", 53.8961, -1.9594],
+["Calderdale Royal Hospital, Halifax", 53.7065, -1.8691],
+["Huddersfield Royal Infirmary", 53.6524, -1.8032],
+["Pinderfields Hospital, Wakefield", 53.6937, -1.4931],
+["Harrogate District Hospital", 53.9973, -1.5173],
+["York Hospital", 53.9697, -1.0848],
+["Scarborough Hospital", 54.2788, -0.4322],
+["Hull Royal Infirmary", 53.7437, -0.3623],
+["Scunthorpe General Hospital", 53.5862, -0.6583],
+["Diana, Princess of Wales Hospital, Grimsby", 53.5574, -0.0798],
+["Northern General Hospital, Sheffield", 53.4119, -1.4599],
+["Sheffield Children's Hospital", 53.3797, -1.4932],
+["Rotherham Hospital", 53.4155, -1.3906],
+["Barnsley Hospital", 53.5627, -1.4934],
+["Doncaster Royal Infirmary", 53.5276, -1.1127],
+["Bassetlaw Hospital, Worksop", 53.3102, -1.1134],
+// ---- North East England
+["Royal Victoria Infirmary, Newcastle", 54.9793, -1.6188],
+["Queen Elizabeth Hospital, Gateshead", 54.9398, -1.5663],
+["Sunderland Royal Hospital", 54.9000, -1.4085],
+["South Tyneside District Hospital", 54.9838, -1.4411],
+["Northumbria Specialist Emergency Care Hospital, Cramlington", 55.0866, -1.6025],
+["University Hospital of North Durham", 54.7840, -1.5908],
+["University Hospital of North Tees, Stockton", 54.5827, -1.3330],
+["Darlington Memorial Hospital", 54.5300, -1.5613],
+["James Cook University Hospital, Middlesbrough", 54.5516, -1.2150],
+// ---- Scotland
+["Royal Infirmary of Edinburgh", 55.9214, -3.1370],
+["Royal Hospital for Children and Young People, Edinburgh", 55.9210, -3.1350],
+["St John's Hospital, Livingston", 55.8930, -3.5219],
+["Borders General Hospital, Melrose", 55.5944, -2.7497],
+["Victoria Hospital, Kirkcaldy", 56.1258, -3.1719],
+["Ninewells Hospital, Dundee", 56.4626, -3.0378],
+["Perth Royal Infirmary", 56.3912, -3.4526],
+["Forth Valley Royal Hospital, Larbert", 56.0292, -3.8368],
+["Queen Elizabeth University Hospital, Glasgow", 55.8622, -4.3380],
+["Royal Hospital for Children, Glasgow", 55.8614, -4.3400],
+["Glasgow Royal Infirmary", 55.8655, -4.2331],
+["Royal Alexandra Hospital, Paisley", 55.8400, -4.4374],
+["Inverclyde Royal Hospital, Greenock", 55.9395, -4.7984],
+["University Hospital Monklands, Airdrie", 55.8570, -3.9896],
+["University Hospital Wishaw", 55.7743, -3.9318],
+["University Hospital Hairmyres, East Kilbride", 55.7548, -4.2130],
+["University Hospital Crosshouse, Kilmarnock", 55.6073, -4.5272],
+["University Hospital Ayr", 55.4461, -4.6177],
+["Dumfries and Galloway Royal Infirmary", 55.0484, -3.6428],
+["Galloway Community Hospital, Stranraer", 54.9059, -5.0251],
+["Aberdeen Royal Infirmary", 57.1535, -2.1367],
+["Dr Gray's Hospital, Elgin", 57.6467, -3.3286],
+["Raigmore Hospital, Inverness", 57.4655, -4.1993],
+["Belford Hospital, Fort William", 56.8211, -5.1113],
+["Lorn and Islands Hospital, Oban", 56.4205, -5.4525],
+["Caithness General Hospital, Wick", 58.4418, -3.1013],
+["Western Isles Hospital, Stornoway", 58.2156, -6.3796],
+["Balfour Hospital, Kirkwall", 58.9697, -2.9738],
+["Gilbert Bain Hospital, Lerwick", 60.1537, -1.1473],
+// ---- Northern Ireland
+["Royal Victoria Hospital, Belfast", 54.5943, -5.9553],
+["Mater Infirmorum Hospital, Belfast", 54.6082, -5.9335],
+["Ulster Hospital, Dundonald", 54.5928, -5.8143],
+["Antrim Area Hospital", 54.7264, -6.2326],
+["Causeway Hospital, Coleraine", 55.1256, -6.6833],
+["Altnagelvin Area Hospital, Derry", 54.9896, -7.2960],
+["South West Acute Hospital, Enniskillen", 54.3436, -7.6680],
+["Craigavon Area Hospital", 54.4426, -6.3799],
+["Daisy Hill Hospital, Newry", 54.1717, -6.3417],
+].filter(s => s[1] !== 0);
+async function postcode(lat, lon) {
+  const r = await fetch(`https://api.postcodes.io/postcodes?lon=${lon.toFixed(6)}&lat=${lat.toFixed(6)}&radius=2000&limit=1`);
+  const j = await r.json();
+  if (j.status !== 200) throw new Error(j.error || ('postcodes.io ' + j.status));
+  const p = (j.result || [])[0];
+  if (!p) return null;
+  return { postcode: p.postcode, distance: p.distance, district: p.admin_district, ward: p.admin_ward };
+}
+async function lookup(lat, lon, key) {
+  const url = 'https://api.what3words.com/v3/convert-to-3wa?coordinates=' + encodeURIComponent(lat.toFixed(6)+','+lon.toFixed(6)) + '&language=en&format=json&key=' + encodeURIComponent(key);
+  const r = await fetch(url);
+  const j = await r.json();
+  if (j.error) throw new Error(j.error.message || j.error.code);
+  return j;
+}
+function haversineKm(lat1, lon1, lat2, lon2) {
+  const R = 6371, dLat = (lat2-lat1)*Math.PI/180, dLon = (lon2-lon1)*Math.PI/180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.sqrt(a));
+}
+async function hospitals(lat, lon) {
+  const list = AE_SITES.map(([name, la, lo]) => ({ name, lat: la, lon: lo, km: haversineKm(lat, lon, la, lo) })).sort((a,b) => a.km - b.km);
+  return { nearestAE: list[0], second: list[1], third: list[2], count: list.length };
+}
+
+// ------------------------------------------------------------------ shared
+const $ = id => document.getElementById(id);
+const store = { get(k){ try { return localStorage.getItem(k) || ''; } catch(e){ return ''; } }, set(k,v){ try { localStorage.setItem(k,v); } catch(e){} } };
+$('key').value = store.get('w3w_key');
+if (!$('key').value) $('keybox').open = true;
+$('key').addEventListener('change', () => store.set('w3w_key', $('key').value.trim()));
+function esc(s){ return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+const cache = new Map();
+async function lookupAll(ref, key) {
+  const k = ref.toUpperCase().replace(/\s+/g,' ').trim();
+  if (cache.has(k)) return cache.get(k);
+  const grid = parseGridRef(ref);
+  const res = { grid, errors: [] };
+  if (grid) {
+    res.ll = osgbToLatLon(grid.e, grid.n);
+    const h = await hospitals(res.ll.lat, res.ll.lon);
+    res.hospital = h.nearestAE ? `${h.nearestAE.name} (${h.nearestAE.km.toFixed(1)} km)` : '';
+    res.hospitalNext = h.second;
+    try { const p = await postcode(res.ll.lat, res.ll.lon); res.postcode = p ? p.postcode : ''; if (!p) res.errors.push('no postcode within 2 km'); }
+    catch (e) { res.errors.push('postcode: ' + e.message); }
+    if (key) {
+      try { res.w3w = await lookup(res.ll.lat, res.ll.lon, key); }
+      catch (e) { res.errors.push('what3words: ' + e.message); }
+    }
+  } else {
+    res.errors.push('OS Ref not readable');
+  }
+  cache.set(k, res);
+  return res;
+}
+
+// ------------------------------------------------------------------ Excel
+const ALIASES = {
+  os: ['os ref', 'os_ref', 'os reference', 'grid ref', 'grid reference', 'ngr'],
+  postcode: ['postcode', 'postcode_ref', 'postcode ref', 'post code'],
+  w3w: ['what3words', 'w3w_ref', 'w3w ref', 'what three words', 'w3w'],
+  hospital: ['hospital', 'hosp_ref', 'hospital ref', 'nearest hospital', 'nearest a&e', 'a&e'],
+};
+let workbook = null, sheetName = '', rows = [], headers = [], fileName = '', results = [];
+function findHeader(list) {
+  for (const h of headers) if (list.includes(String(h).trim().toLowerCase())) return h;
+  return null;
+}
+function loadFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array', cellDates: true });
+      sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+      headers = rows.length ? Object.keys(rows[0]) : [];
+      const osCol = findHeader(ALIASES.os);
+      fileName = file.name;
+      if (!osCol) { $('status').textContent = `No OS Ref column found in "${sheetName}". Headings seen: ${headers.join(', ')}`; $('run').disabled = true; return; }
+      const withRef = rows.filter(r => String(r[osCol]).trim()).length;
+      $('status').textContent = `${file.name}: sheet "${sheetName}", ${rows.length} rows, ${withRef} with an OS Ref (column "${osCol}").`;
+      $('run').disabled = false; $('download').disabled = true; $('copy').disabled = true;
+      $('tablewrap').hidden = true;
+    } catch (err) { $('status').textContent = 'Could not read that file: ' + err.message; }
+  };
+  reader.readAsArrayBuffer(file);
+}
+$('file').addEventListener('change', e => { if (e.target.files[0]) loadFile(e.target.files[0]); });
+const drop = $('drop');
+['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) loadFile(f); });
+
+$('run').onclick = async () => {
+  const key = $('key').value.trim();
+  const osCol = findHeader(ALIASES.os);
+  const pcCol = findHeader(ALIASES.postcode) || 'Postcode';
+  const w3Col = findHeader(ALIASES.w3w) || 'What3Words';
+  const hoCol = findHeader(ALIASES.hospital) || 'Hospital';
+  for (const c of [pcCol, w3Col, hoCol]) if (!headers.includes(c)) { headers.push(c); rows.forEach(r => { if (!(c in r)) r[c] = ''; }); }
+  results = [];
+  $('run').disabled = true;
+  let n = 0;
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i];
+    const ref = String(r[osCol] ?? '').trim();
+    const rec = { row: i + 2, ref, postcode: { before: String(r[pcCol] ?? '').trim() }, w3w: { before: String(r[w3Col] ?? '').trim() }, hospital: { before: String(r[hoCol] ?? '').trim() }, errors: [] };
+    results.push(rec);
+    if (!ref) continue;
+    const need = !rec.postcode.before || !rec.w3w.before || !rec.hospital.before;
+    if (!need) continue;
+    $('status').textContent = `Looking up row ${i + 2}: ${ref} …`;
+    const found = await lookupAll(ref, key);
+    rec.errors = found.errors;
+    if (!rec.postcode.before && found.postcode) { r[pcCol] = found.postcode; rec.postcode.filled = found.postcode; }
+    if (!rec.w3w.before && found.w3w) { r[w3Col] = found.w3w.words ? '///' + found.w3w.words : ''; rec.w3w.filled = r[w3Col]; }
+    if (!rec.hospital.before && found.hospital) { r[hoCol] = found.hospital; rec.hospital.filled = found.hospital; }
+    n++;
+    renderTable(pcCol, w3Col, hoCol);
+  }
+  $('status').textContent = `Done: ${n} row(s) looked up.` + (key ? '' : ' No what3words key, so What3Words left blank.');
+  renderTable(pcCol, w3Col, hoCol);
+  $('download').disabled = false; $('copy').disabled = false; $('run').disabled = false;
+};
+
+function cell(v) {
+  if (v.filled) return `<td class="filled">${esc(v.filled)}</td>`;
+  if (v.before) return `<td class="kept">${esc(v.before)}</td>`;
+  return `<td></td>`;
+}
+function renderTable(pcCol, w3Col, hoCol) {
+  const t = $('table');
+  t.innerHTML = `<tr><th>Row</th><th>OS Ref</th><th>${esc(pcCol)}</th><th>${esc(w3Col)}</th><th>${esc(hoCol)}</th><th>Notes</th></tr>` +
+    results.filter(r => r.ref).map(r => `<tr><td>${r.row}</td><td>${esc(r.ref)}</td>${cell(r.postcode)}${cell(r.w3w)}${cell(r.hospital)}<td class="${r.errors.length ? 'error' : ''}">${esc(r.errors.join('; '))}</td></tr>`).join('');
+  $('tablewrap').hidden = false;
+}
+
+$('download').onclick = () => {
+  const sheet = XLSX.utils.json_to_sheet(rows, { header: headers });
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, sheet, sheetName);
+  // carry the other sheets across untouched
+  workbook.SheetNames.filter(n => n !== sheetName).forEach(n => XLSX.utils.book_append_sheet(wb, workbook.Sheets[n], n));
+  const out = fileName.replace(/\.(xlsx|xlsm|xls|csv)$/i, '') + '_filled.xlsx';
+  XLSX.writeFile(wb, out);
+  $('status').textContent = 'Downloaded ' + out;
+};
+$('copy').onclick = async () => {
+  const osCol = findHeader(ALIASES.os);
+  const pcCol = findHeader(ALIASES.postcode) || 'Postcode', w3Col = findHeader(ALIASES.w3w) || 'What3Words', hoCol = findHeader(ALIASES.hospital) || 'Hospital';
+  const text = [[osCol, pcCol, w3Col, hoCol].join('\t'), ...rows.map(r => [r[osCol], r[pcCol], r[w3Col], r[hoCol]].map(v => String(v ?? '')).join('\t'))].join('\n');
+  try { await navigator.clipboard.writeText(text); $('status').textContent = 'Copied: paste into the workbank (same row order).'; }
+  catch (e) { $('status').textContent = 'Copy blocked by the browser.'; }
+};
+
+// ------------------------------------------------------------------ typed refs
+$('go').onclick = async () => {
+  const key = $('key').value.trim();
+  const lines = $('refs').value.split(/\n/).map(s => s.trim()).filter(Boolean);
+  const out = $('out'); out.innerHTML = '';
+  for (const line of lines) {
+    let name = '', ref = line;
+    const c = line.indexOf(':');
+    if (c > 0 && !/^\d/.test(line)) { name = line.slice(0, c).trim(); ref = line.slice(c + 1).trim(); }
+    const div = document.createElement('div'); div.className = 'result';
+    div.innerHTML = `<div><b>${esc(name || ref)}</b></div><div class="meta">Looking up…</div>`;
+    out.appendChild(div);
+    const f = await lookupAll(ref, key);
+    if (!f.grid) { div.innerHTML = `<div><b>${esc(name || ref)}</b></div><div class="error">Not a grid reference I can read.</div>`; continue; }
+    const { lat, lon } = f.ll;
+    div.innerHTML = `<div><b>${esc(name || f.grid.label)}</b> <span class="meta">${esc(f.grid.label)} · ${f.grid.size >= 1000 ? f.grid.size/1000 + ' km' : f.grid.size + ' m'} square</span></div>` +
+      (f.w3w ? `<div class="words"><a href="https://w3w.co/${esc(f.w3w.words)}" target="_blank" rel="noopener">///${esc(f.w3w.words)}</a> <span class="meta">near ${esc(f.w3w.nearestPlace || '—')}</span></div>` : '') +
+      `<div class="meta">Nearest postcode: <b>${esc(f.postcode || '—')}</b></div>` +
+      `<div class="hosp">Nearest A&amp;E: <b>${esc(f.hospital)}</b>${f.hospitalNext ? ` <span class="meta">· then ${esc(f.hospitalNext.name)} (${f.hospitalNext.km.toFixed(1)} km)</span>` : ''}</div>` +
+      `<div class="meta">${lat.toFixed(6)}, ${lon.toFixed(6)}</div>` +
+      `<div class="links"><a href="https://www.google.com/maps?q=${lat.toFixed(6)},${lon.toFixed(6)}" target="_blank" rel="noopener">Google Maps</a><a href="https://what3words.com/?maps=${lat.toFixed(6)},${lon.toFixed(6)}" target="_blank" rel="noopener">what3words map</a></div>` +
+      (f.errors.length ? `<div class="error">${esc(f.errors.join('; '))}</div>` : '');
+  }
+};
+</script>
+</body>
+</html>

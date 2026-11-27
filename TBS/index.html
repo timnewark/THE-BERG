@@ -60,7 +60,7 @@
 <header>
   <a href="../">← The BERG</a>
   <h1>TBS builder</h1>
-  <p>Drop in the workbank, fill the location blanks, then print the TBS documents from the Word template.</p>
+  <p>Drop in the workbank, fill postcode / what3words / A&amp;E / welfare from the OS refs, then print the TBS documents.</p>
 </header>
 <main>
   <div class="card">
@@ -68,7 +68,7 @@
     <label class="drop" id="drop">
       <input type="file" id="file" accept=".xlsx,.xlsm,.xls,.csv">
       <div><b>Drop the Excel workbank here</b> or tap to choose</div>
-      <div class="hint">First sheet is used. Blank <b>Postcode</b>, <b>What3Words</b> and <b>Hospital</b> cells are filled; anything already typed in is kept. Columns are added if missing.</div>
+      <div class="hint">First sheet is used. Blank <b>Postcode</b>, <b>what3words</b>, <b>Nearest A&amp;E</b> and <b>Welfare</b> cells are filled; anything already typed in is kept. Columns are added if missing.</div>
     </label>
     <details style="margin-top:12px">
       <summary>Columns the workbank needs</summary>
@@ -88,7 +88,7 @@
         <tr><td><b>Examiner</b>, <b>Signature</b> <span class="kept">(or sigRef)</span></td><td>Override the examiner and signature entered below, per row</td><td>Optional</td></tr>
         <tr><td><b>Structure type</b></td><td>Overrides the structure type entered below</td><td>Optional</td></tr>
         <tr><td><b>Postcode</b>, <b>what3words</b>, <b>Nearest A&amp;E</b></td><td>Filled by the lookup; type your own to override</td><td>Optional</td></tr>
-        <tr><td><b>Welfare</b></td><td>++Welfare++ – nothing looks this up</td><td>Optional</td></tr>
+        <tr><td><b>Welfare</b></td><td>++Welfare++ – filled by the lookup (nearest petrol station, supermarket or services from OpenStreetMap); type your own to override</td><td>Optional</td></tr>
         <tr><td><b>WPP reference</b>, <b>TBS reference</b></td><td>Override the refs entered below, per row</td><td>Optional</td></tr>
       </table>
       </div>
@@ -159,7 +159,7 @@
     </details>
   </div>
 
-  <p class="hint">Grid refs are converted at the centre of their square (a 6-figure ref is a 100 m square). Postcode is the nearest within 2 km (postcodes.io). A&amp;E is the nearest consultant-led 24-hour emergency department from a built-in UK list (Nov 2026), straight-line distance. Check before relying on any of it for a RAMS.</p>
+  <p class="hint">Grid refs are converted at the centre of their square (a 6-figure ref is a 100 m square). Postcode is the nearest within 2 km (postcodes.io). A&amp;E is the nearest consultant-led 24-hour emergency department from a built-in UK list (Nov 2026), straight-line distance. Welfare is the nearest petrol station, supermarket or services within 10 km from OpenStreetMap (falling back to a café, fast food or convenience shop), so check it is actually open to the public. Check before relying on any of it for a RAMS.</p>
 </main>
 <script>
 
@@ -502,6 +502,26 @@ function haversineKm(lat1, lon1, lat2, lon2) {
   const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
   return 2*R*Math.asin(Math.sqrt(a));
 }
+// Nearest welfare from OpenStreetMap (Overpass, no key): petrol stations, supermarkets and
+// services first (toilets, hot drinks), then cafés, fast food and convenience shops. 10 km.
+async function welfare(lat, lon) {
+  const q = `[out:json][timeout:25];(nwr["amenity"="fuel"](around:10000,${lat},${lon});nwr["shop"="supermarket"](around:10000,${lat},${lon});nwr["highway"="services"](around:10000,${lat},${lon});nwr["amenity"~"^(cafe|fast_food)$"](around:10000,${lat},${lon});nwr["shop"="convenience"](around:10000,${lat},${lon}););out center tags;`;
+  const r = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: 'data=' + encodeURIComponent(q), headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
+  if (!r.ok) throw new Error('welfare lookup ' + r.status);
+  const j = await r.json();
+  const kind = t => t.amenity === 'fuel' ? 'petrol station' : t.shop === 'supermarket' ? 'supermarket' : t.highway === 'services' ? 'services' : t.amenity === 'cafe' ? 'café' : t.amenity === 'fast_food' ? 'fast food' : 'shop';
+  const tier = t => (t.amenity === 'fuel' || t.shop === 'supermarket' || t.highway === 'services') ? 0 : 1;
+  const list = (j.elements || []).map(e => {
+    const la = e.lat ?? e.center?.lat, lo = e.lon ?? e.center?.lon; if (la == null) return null;
+    const t = e.tags || {}; const name = t.name || t.brand || t.operator; if (!name) return null;
+    return { name, kind: kind(t), tier: tier(t), km: haversineKm(lat, lon, la, lo), road: t['addr:street'] || '' };
+  }).filter(Boolean).sort((a, b) => a.km - b.km);
+  // the nearest top-tier place unless it is much further than the nearest of anything
+  const best = list.find(x => x.tier === 0 && (!list[0] || x.km <= list[0].km + 2)) || list[0];
+  if (!best) return '';
+  return `${best.name}${best.road ? ', ' + best.road : ''} (${best.kind}, ${best.km.toFixed(1)} km)`;
+}
+
 async function hospitals(lat, lon) {
   const list = AE_SITES.map(([name, la, lo]) => ({ name, lat: la, lon: lo, km: haversineKm(lat, lon, la, lo) })).sort((a,b) => a.km - b.km);
   return { nearestAE: list[0], second: list[1], third: list[2], count: list.length };
@@ -526,6 +546,8 @@ async function lookupAll(ref, key) {
     res.hospitalNext = h.second;
     try { const p = await postcode(res.ll.lat, res.ll.lon); res.postcode = p ? p.postcode : ''; if (!p) res.errors.push('no postcode within 2 km'); }
     catch (e) { res.errors.push('postcode: ' + e.message); }
+    try { res.welfare = await welfare(res.ll.lat, res.ll.lon); if (!res.welfare) res.errors.push('no welfare found within 10 km'); }
+    catch (e) { res.errors.push('welfare: ' + e.message); }
     if (key) {
       try { res.w3w = await lookup(res.ll.lat, res.ll.lon, key); }
       catch (e) { res.errors.push('what3words: ' + e.message); }
@@ -543,6 +565,7 @@ const ALIASES = {
   postcode: ['postcode', 'postcode_ref', 'postcode ref', 'post code'],
   w3w: ['what3words', 'w3w_ref', 'w3w ref', 'what three words', 'w3w'],
   hospital: ['nearest a&e', 'hospital', 'hosp_ref', 'hospital ref', 'nearest hospital', 'a&e'],
+  welfare: ['welfare', 'welf_ref', 'welfare ref', 'nearest welfare'],
 };
 let workbook = null, sheetName = '', rows = [], headers = [], fileName = '', results = [];
 function findHeader(list) {
@@ -586,17 +609,18 @@ async function lookupBlanks() {
   const pcCol = findHeader(ALIASES.postcode) || 'Postcode';
   const w3Col = findHeader(ALIASES.w3w) || 'what3words';
   const hoCol = findHeader(ALIASES.hospital) || 'Nearest A&E';
-  for (const c of [pcCol, w3Col, hoCol]) if (!headers.includes(c)) { headers.push(c); rows.forEach(r => { if (!(c in r)) r[c] = ''; }); }
+  const weCol = findHeader(ALIASES.welfare) || 'Welfare';
+  for (const c of [pcCol, w3Col, hoCol, weCol]) if (!headers.includes(c)) { headers.push(c); rows.forEach(r => { if (!(c in r)) r[c] = ''; }); }
   results = [];
   $('run').disabled = true;
   let n = 0;
   for (let i = 0; i < rows.length; i++) {
     const r = rows[i];
     const ref = String(r[osCol] ?? '').trim();
-    const rec = { row: i + 2, ref, postcode: { before: String(r[pcCol] ?? '').trim() }, w3w: { before: String(r[w3Col] ?? '').trim() }, hospital: { before: String(r[hoCol] ?? '').trim() }, errors: [] };
+    const rec = { row: i + 2, ref, postcode: { before: String(r[pcCol] ?? '').trim() }, w3w: { before: String(r[w3Col] ?? '').trim() }, hospital: { before: String(r[hoCol] ?? '').trim() }, welfare: { before: String(r[weCol] ?? '').trim() }, errors: [] };
     results.push(rec);
     if (!ref) continue;
-    const need = !rec.postcode.before || !rec.w3w.before || !rec.hospital.before;
+    const need = !rec.postcode.before || !rec.w3w.before || !rec.hospital.before || !rec.welfare.before;
     if (!need) continue;
     $('status').textContent = `Looking up row ${i + 2}: ${ref} …`;
     const found = await lookupAll(ref, key);
@@ -604,11 +628,12 @@ async function lookupBlanks() {
     if (!rec.postcode.before && found.postcode) { r[pcCol] = found.postcode; rec.postcode.filled = found.postcode; }
     if (!rec.w3w.before && found.w3w) { r[w3Col] = found.w3w.words ? '///' + found.w3w.words : ''; rec.w3w.filled = r[w3Col]; }
     if (!rec.hospital.before && found.hospital) { r[hoCol] = found.hospital; rec.hospital.filled = found.hospital; }
+    if (!rec.welfare.before && found.welfare) { r[weCol] = found.welfare; rec.welfare.filled = found.welfare; }
     n++;
-    renderTable(pcCol, w3Col, hoCol);
+    renderTable(pcCol, w3Col, hoCol, weCol);
   }
   $('status').textContent = `Done: ${n} row(s) looked up.`;
-  renderTable(pcCol, w3Col, hoCol);
+  renderTable(pcCol, w3Col, hoCol, weCol);
   $('download').disabled = false; $('copy').disabled = false; $('run').disabled = false;
   lookedUp = true;
 }
@@ -619,10 +644,10 @@ function cell(v) {
   if (v.before) return `<td class="kept">${esc(v.before)}</td>`;
   return `<td></td>`;
 }
-function renderTable(pcCol, w3Col, hoCol) {
+function renderTable(pcCol, w3Col, hoCol, weCol) {
   const t = $('table');
-  t.innerHTML = `<tr><th>Row</th><th>OS Ref</th><th>${esc(pcCol)}</th><th>${esc(w3Col)}</th><th>${esc(hoCol)}</th><th>Notes</th></tr>` +
-    results.filter(r => r.ref).map(r => `<tr><td>${r.row}</td><td>${esc(r.ref)}</td>${cell(r.postcode)}${cell(r.w3w)}${cell(r.hospital)}<td class="${r.errors.length ? 'error' : ''}">${esc(r.errors.join('; '))}</td></tr>`).join('');
+  t.innerHTML = `<tr><th>Row</th><th>OS Ref</th><th>${esc(pcCol)}</th><th>${esc(w3Col)}</th><th>${esc(hoCol)}</th><th>${esc(weCol)}</th><th>Notes</th></tr>` +
+    results.filter(r => r.ref).map(r => `<tr><td>${r.row}</td><td>${esc(r.ref)}</td>${cell(r.postcode)}${cell(r.w3w)}${cell(r.hospital)}${cell(r.welfare)}<td class="${r.errors.length ? 'error' : ''}">${esc(r.errors.join('; '))}</td></tr>`).join('');
   $('tablewrap').hidden = false;
 }
 
@@ -638,8 +663,8 @@ $('download').onclick = () => {
 };
 $('copy').onclick = async () => {
   const osCol = findHeader(ALIASES.os);
-  const pcCol = findHeader(ALIASES.postcode) || 'Postcode', w3Col = findHeader(ALIASES.w3w) || 'what3words', hoCol = findHeader(ALIASES.hospital) || 'Nearest A&E';
-  const text = [[osCol, pcCol, w3Col, hoCol].join('\t'), ...rows.map(r => [r[osCol], r[pcCol], r[w3Col], r[hoCol]].map(v => String(v ?? '')).join('\t'))].join('\n');
+  const pcCol = findHeader(ALIASES.postcode) || 'Postcode', w3Col = findHeader(ALIASES.w3w) || 'what3words', hoCol = findHeader(ALIASES.hospital) || 'Nearest A&E', weCol = findHeader(ALIASES.welfare) || 'Welfare';
+  const text = [[osCol, pcCol, w3Col, hoCol, weCol].join('\t'), ...rows.map(r => [r[osCol], r[pcCol], r[w3Col], r[hoCol], r[weCol]].map(v => String(v ?? '')).join('\t'))].join('\n');
   try { await navigator.clipboard.writeText(text); $('status').textContent = 'Copied: paste into the workbank (same row order).'; }
   catch (e) { $('status').textContent = 'Copy blocked by the browser.'; }
 };
@@ -946,6 +971,7 @@ $('go').onclick = async () => {
       (f.w3w ? `<div class="words"><a href="https://w3w.co/${esc(f.w3w.words)}" target="_blank" rel="noopener">///${esc(f.w3w.words)}</a> <span class="meta">near ${esc(f.w3w.nearestPlace || '—')}</span></div>` : '') +
       `<div class="meta">Nearest postcode: <b>${esc(f.postcode || '—')}</b></div>` +
       `<div class="hosp">Nearest A&amp;E: <b>${esc(f.hospital)}</b>${f.hospitalNext ? ` <span class="meta">· then ${esc(f.hospitalNext.name)} (${f.hospitalNext.km.toFixed(1)} km)</span>` : ''}</div>` +
+      `<div class="meta">Nearest welfare: <b>${esc(f.welfare || '—')}</b></div>` +
       `<div class="meta">${lat.toFixed(6)}, ${lon.toFixed(6)}</div>` +
       `<div class="links"><a href="https://www.google.com/maps?q=${lat.toFixed(6)},${lon.toFixed(6)}" target="_blank" rel="noopener">Google Maps</a><a href="https://what3words.com/?maps=${lat.toFixed(6)},${lon.toFixed(6)}" target="_blank" rel="noopener">what3words map</a></div>` +
       (f.errors.length ? `<div class="error">${esc(f.errors.join('; '))}</div>` : '');

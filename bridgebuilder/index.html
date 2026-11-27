@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#28536B">
+<title>BridgeBuilder | The BERG</title>
+<link rel="icon" href="../assets/img/favicon.png" type="image/png">
+<style>
+  :root { --ink:#1c2a33; --muted:#5f6f7a; --line:#d7dee3; --teal:#28536B; --bg:#f4f6f8; --card:#fff; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; color:var(--ink); background:var(--bg); }
+  header { background:var(--teal); color:#fff; padding:18px 20px 16px; }
+  header a { color:#fff; opacity:.85; font-size:13px; text-decoration:none; }
+  header h1 { margin:6px 0 0; font-size:24px; }
+  header p { margin:4px 0 0; opacity:.85; font-size:14px; }
+  main { max-width:720px; margin:0 auto; padding:16px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px; margin-bottom:14px; }
+  h2 { font-size:17px; margin:0 0 10px; }
+  .btn { display:inline-block; background:var(--teal); color:#fff; font-weight:700; text-decoration:none; padding:14px 22px; border-radius:12px; font-size:17px; }
+  .meta { color:var(--muted); font-size:14px; margin-top:10px; }
+  ol { padding-left:20px; } li { margin:6px 0; }
+  .icon { width:56px; height:56px; border-radius:14px; background:#28536B; display:inline-block; vertical-align:middle; margin-right:12px; }
+</style>
+</head>
+<body>
+<header>
+  <a href="../">← The BERG</a>
+  <h1>BridgeBuilder</h1>
+  <p>Bridge inspection photos: take, name, and renumber into the report order.</p>
+</header>
+<main>
+  <div class="card">
+    <svg class="icon" viewBox="0 0 108 108" aria-hidden="true"><rect width="108" height="108" rx="24" fill="#28536B"/><path fill="#fff" d="M26,34 H82 V38 H26 Z"/><path fill="#fff" fill-rule="evenodd" d="M26,41 H82 V74 H72 V62 C72,51 64,45 54,45 C44,45 36,51 36,62 V74 H26 Z"/><path fill="#fff" fill-opacity=".6" d="M26,80 C31,77 36,77 41,80 C46,83 51,83 56,80 C61,77 66,77 71,80 C75,82.5 78.5,82.5 82,80 V84 C78.5,86.5 75,86.5 71,84 C66,81 61,81 56,84 C51,87 46,87 41,84 C36,81 31,81 26,84 Z"/></svg>
+    <a class="btn" href="BridgeBuilder.apk" download>Download BridgeBuilder (Android)</a>
+    <div class="meta" id="ver">Version 1.0, build 59 · Android 8 or later · about 22 MB</div>
+  </div>
+
+  <div class="card">
+    <h2>Installing</h2>
+    <ol>
+      <li>Tap the download button on the phone. When it finishes, open the file from the notification or from Files → Downloads.</li>
+      <li>Android will ask to allow installs from this browser the first time: allow it, then tap <b>Install</b>.</li>
+      <li>If Play Protect warns that the app isn't verified, tap <b>Install anyway</b>. It's a privately distributed app, not on the Play Store.</li>
+      <li>Open BridgeBuilder, allow the camera, and choose the folder the bridge's photos go in.</li>
+    </ol>
+    <p class="meta">Updating: download the newer build from this page and install over the top. Photos and settings are kept.</p>
+  </div>
+
+  <div class="card">
+    <h2>What it does</h2>
+    <p>Take a photo, say or type its name (codes such as <b>NEWW</b>, <b>SABT</b>, <b>AF</b> are written out), and it saves straight into the bridge's folder. The Photo list checks the standard shots are all there, shows what's missing, and renumbers the photos into the report order in pairs. Settings has the structure type (one span bridge or retaining wall).</p>
+    <p class="meta">Tools: <a href="../TBS/">TBS location lookup</a> (OS grid ref → postcode, what3words, nearest A&amp;E).</p>
+  </div>
+</main>
+</body>
+</html>

@@ -166,17 +166,6 @@
     <div class="tablewrap" id="plogwrap" hidden><table id="plog"></table></div>
   </div>
 
-  <div class="card">
-    <details>
-      <summary>Or type grid references</summary>
-      <div style="margin-top:10px">
-        <textarea id="refs" placeholder="ST 1835 7640&#10;AYT/43: SO 5012 2043&#10;318350, 176400"></textarea>
-        <p class="hint">One per line, any precision, or easting, northing. A name before a colon labels it.</p>
-        <div class="row" style="margin-top:10px"><button class="primary" id="go">Convert</button></div>
-        <div id="out" style="margin-top:12px"></div>
-      </div>
-    </details>
-  </div>
 
   <p class="hint">Grid refs are converted at the centre of their square (a 6-figure ref is a 100 m square). Postcode is the nearest within 2 km (postcodes.io). A&amp;E is the nearest consultant-led 24-hour emergency department from a built-in UK list (Nov 2026), straight-line distance. Welfare is the nearest petrol station, supermarket or services within 10 km from OpenStreetMap (falling back to a café, fast food or convenience shop), so check it is actually open to the public. Check before relying on any of it for a RAMS.</p>
 </main>
@@ -1025,30 +1014,6 @@ $('print').onclick = async () => {
 };
 
 // ------------------------------------------------------------------ typed refs
-$('go').onclick = async () => {
-  const key = W3W_KEY;
-  const lines = $('refs').value.split(/\n/).map(s => s.trim()).filter(Boolean);
-  const out = $('out'); out.innerHTML = '';
-  for (const line of lines) {
-    let name = '', ref = line;
-    const c = line.indexOf(':');
-    if (c > 0 && !/^\d/.test(line)) { name = line.slice(0, c).trim(); ref = line.slice(c + 1).trim(); }
-    const div = document.createElement('div'); div.className = 'result';
-    div.innerHTML = `<div><b>${esc(name || ref)}</b></div><div class="meta">Looking up…</div>`;
-    out.appendChild(div);
-    const f = await lookupAll(ref, key);
-    if (!f.grid) { div.innerHTML = `<div><b>${esc(name || ref)}</b></div><div class="error">Not a grid reference I can read.</div>`; continue; }
-    const { lat, lon } = f.ll;
-    div.innerHTML = `<div><b>${esc(name || f.grid.label)}</b> <span class="meta">${esc(f.grid.label)} · ${f.grid.size >= 1000 ? f.grid.size/1000 + ' km' : f.grid.size + ' m'} square</span></div>` +
-      (f.w3w ? `<div class="words"><a href="https://w3w.co/${esc(f.w3w.words)}" target="_blank" rel="noopener">///${esc(f.w3w.words)}</a> <span class="meta">near ${esc(f.w3w.nearestPlace || '—')}</span></div>` : '') +
-      `<div class="meta">Nearest postcode: <b>${esc(f.postcode || '—')}</b></div>` +
-      `<div class="hosp">Nearest A&amp;E: <b>${esc(f.hospital)}</b>${f.hospitalNext ? ` <span class="meta">· then ${esc(f.hospitalNext.name)} (${f.hospitalNext.km.toFixed(1)} km)</span>` : ''}</div>` +
-      `<div class="meta">Nearest welfare: <b>${esc(f.welfare || '—')}</b></div>` +
-      `<div class="meta">${lat.toFixed(6)}, ${lon.toFixed(6)}</div>` +
-      `<div class="links"><a href="https://www.google.com/maps?q=${lat.toFixed(6)},${lon.toFixed(6)}" target="_blank" rel="noopener">Google Maps</a><a href="https://what3words.com/?maps=${lat.toFixed(6)},${lon.toFixed(6)}" target="_blank" rel="noopener">what3words map</a></div>` +
-      (f.errors.length ? `<div class="error">${esc(f.errors.join('; '))}</div>` : '');
-  }
-};
 </script>
 </body>
 </html>

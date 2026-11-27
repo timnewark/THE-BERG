@@ -75,20 +75,20 @@
       <div class="tablewrap" style="max-height:none;margin-top:8px">
       <table>
         <tr><th>Column heading</th><th>Used for</th><th>Needed?</th></tr>
-        <tr><td><b>Unique No.</b></td><td>Asset ID – goes into the TBS reference and the filename</td><td class="filled">Yes</td></tr>
-        <tr><td><b>ELR</b></td><td>Structure ref ({{STRUCTURE_REF}})</td><td class="filled">Yes</td></tr>
-        <tr><td><b>ID</b></td><td>Structure name, e.g. “AYT 43”</td><td class="filled">Yes, or Mileage + Chains</td></tr>
-        <tr><td><b>Mileage</b>, <b>Chains</b></td><td>Used when ID is blank, e.g. “AYT 12m 34c”</td><td>Only if no ID</td></tr>
-        <tr><td><b>YR6 Exam</b></td><td>Exam type; first three letters become the code (VIS, DET)</td><td class="filled">Yes</td></tr>
-        <tr><td><b>OS Ref</b></td><td>Grid ref – drives the postcode, what3words and A&amp;E lookup</td><td class="filled">Yes, for the lookup</td></tr>
-        <tr><td><b>Exam Area</b></td><td>{{GEO_LOC}}</td><td>If the template uses it</td></tr>
-        <tr><td><b>Date of works</b> / <b>Planned Month</b> / <b>Suggest Exam Date</b></td><td>{{WEEK_REF}}</td><td>If the template uses it</td></tr>
-        <tr><td><b>Planned Report Date</b></td><td>Overrides the report date entered below</td><td>Optional</td></tr>
-        <tr><td><b>Examiner</b>, <b>sigRef</b></td><td>Override the examiner and signature entered below, per row</td><td>Optional</td></tr>
-        <tr><td><b>Structure Type</b></td><td>Overrides the structure type entered below</td><td>Optional</td></tr>
-        <tr><td><b>Postcode</b>, <b>What3Words</b>, <b>Hospital</b></td><td>Filled by the lookup; type your own to override</td><td>Optional</td></tr>
-        <tr><td><b>Welfare</b></td><td>{{WELF_REF}} – nothing looks this up</td><td>Optional</td></tr>
-        <tr><td><b>WPP Ref</b>, <b>TBS Ref</b></td><td>Override the refs entered below, per row</td><td>Optional</td></tr>
+        <tr><td><b>Asset ID</b> <span class="kept">(or Unique No.)</span></td><td>Goes into the TBS reference and the filename</td><td class="filled">Yes</td></tr>
+        <tr><td><b>ELR</b></td><td>++Structure++, with the structure name</td><td class="filled">Yes</td></tr>
+        <tr><td><b>Structure name</b> <span class="kept">(or ID)</span></td><td>e.g. “43” → “AYT 43”</td><td class="filled">Yes, or Mileage + Chains</td></tr>
+        <tr><td><b>Mileage</b>, <b>Chains</b></td><td>Used when there is no structure name, e.g. “AYT 12m 34c”</td><td>Only if no structure name</td></tr>
+        <tr><td><b>Exam type</b> <span class="kept">(or YR6 Exam)</span></td><td>++Exam type++; first three letters become the code (VIS, DET)</td><td class="filled">Yes</td></tr>
+        <tr><td><b>OS grid ref</b> <span class="kept">(or OS Ref)</span></td><td>++OS grid ref++ – drives the postcode, what3words and A&amp;E lookup</td><td class="filled">Yes, for the lookup</td></tr>
+        <tr><td><b>Exam area</b></td><td>++Exam area++</td><td>If the template uses it</td></tr>
+        <tr><td><b>Date of works</b> <span class="kept">(or Planned Month / Suggest Exam Date)</span></td><td>++Date of works++</td><td>If the template uses it</td></tr>
+        <tr><td><b>Report date</b> <span class="kept">(or Planned Report Date)</span></td><td>Overrides the report date entered below</td><td>Optional</td></tr>
+        <tr><td><b>Examiner</b>, <b>Signature</b> <span class="kept">(or sigRef)</span></td><td>Override the examiner and signature entered below, per row</td><td>Optional</td></tr>
+        <tr><td><b>Structure type</b></td><td>Overrides the structure type entered below</td><td>Optional</td></tr>
+        <tr><td><b>Postcode</b>, <b>what3words</b>, <b>Nearest A&amp;E</b></td><td>Filled by the lookup; type your own to override</td><td>Optional</td></tr>
+        <tr><td><b>Welfare</b></td><td>++Welfare++ – nothing looks this up</td><td>Optional</td></tr>
+        <tr><td><b>WPP reference</b>, <b>TBS reference</b></td><td>Override the refs entered below, per row</td><td>Optional</td></tr>
       </table>
       </div>
       <p class="hint">Headings are matched whatever the capitalisation. A row is skipped when Unique No., ELR, ID, Mileage, Chains and YR6 Exam are all blank, or when ELR reads “TM list” or “ASAP”. After loading, the page lists any headings it could not find.</p>
@@ -117,7 +117,7 @@
     <label class="drop" id="sdrop" style="margin-top:12px">
       <input type="file" id="sfile" accept=".jpg,.jpeg,.png" multiple>
       <div><b>Drop your signature image here</b> (jpg or png; several at once if the workbank names different examiners)</div>
-      <div class="hint">Named as the sigRef column or the field above expects: <b>SIG_TN.jpg</b>, <b>SIG_AB.png</b> … Inserted at {{SIG_REF}}, 10 mm wide.</div>
+      <div class="hint">Named as the sigRef column or the field above expects: <b>SIG_TN.jpg</b>, <b>SIG_AB.png</b> … Inserted at ++Signature++, 10 mm wide.</div>
     </label>
   </div>
 
@@ -128,11 +128,15 @@
         <option value="templates/XEIAD-SSTBS-Y5-6-HRE-VIS-ALL-ELR-ID_-_TEMPLATE.docx">XEIAD-SSTBS-Y5-6-HRE-VIS-ALL (ELR / ID)</option>
       </select>
     </label>
+    <details style="margin:8px 0">
+      <summary>Placeholders the template can use</summary>
+      <p class="hint">Type these into the Word template exactly, including the plus signs: <b>++TBS reference++</b>, <b>++Structure++</b>, <b>++Structure type++</b>, <b>++Exam type++</b>, <b>++Report date++</b>, <b>++Date of works++</b>, <b>++Examiner++</b>, <b>++Signature++</b> (replaced by the image), <b>++Exam area++</b>, <b>++OS grid ref++</b>, <b>++Postcode++</b>, <b>++what3words++</b>, <b>++Nearest A&amp;E++</b>, <b>++Welfare++</b>, <b>++WPP reference++</b>, <b>++Asset ID++</b>, <b>++Mileage++</b>, <b>++Chains++</b>, <b>++Structure name++</b>.</p>
+    </details>
     <p class="hint">Building runs the location lookup first if you haven't already, so postcode, what3words and nearest A&amp;E are in the documents. <a href="#" id="owntpl">Use a different template…</a></p>
     <label class="drop" id="tdrop" hidden>
       <input type="file" id="tfile" accept=".docx">
       <div><b>Drop a Word TBS template here</b> or tap to choose</div>
-      <div class="hint">A .docx with {{TBS_REF}}, {{STRUCTURE_REF}}, {{SIG_REF}} … placeholders. Headers, footers and tables are all filled.</div>
+      <div class="hint">A .docx with ++TBS reference++, ++Structure++, ++Signature++ … placeholders (the older {{TBS_REF}} style still works). Headers, footers and tables are all filled.</div>
     </label>
     <div class="status" id="tstatus" style="margin-top:8px"></div>
     <div class="row" style="margin-top:12px">
@@ -534,10 +538,10 @@ async function lookupAll(ref, key) {
 
 // ------------------------------------------------------------------ Excel
 const ALIASES = {
-  os: ['os ref', 'os_ref', 'os reference', 'grid ref', 'grid reference', 'ngr'],
+  os: ['os grid ref', 'os ref', 'os_ref', 'os reference', 'grid ref', 'grid reference', 'ngr'],
   postcode: ['postcode', 'postcode_ref', 'postcode ref', 'post code'],
   w3w: ['what3words', 'w3w_ref', 'w3w ref', 'what three words', 'w3w'],
-  hospital: ['hospital', 'hosp_ref', 'hospital ref', 'nearest hospital', 'nearest a&e', 'a&e'],
+  hospital: ['nearest a&e', 'hospital', 'hosp_ref', 'hospital ref', 'nearest hospital', 'a&e'],
 };
 let workbook = null, sheetName = '', rows = [], headers = [], fileName = '', results = [];
 function findHeader(list) {
@@ -579,8 +583,8 @@ async function lookupBlanks() {
   const key = W3W_KEY;
   const osCol = findHeader(ALIASES.os);
   const pcCol = findHeader(ALIASES.postcode) || 'Postcode';
-  const w3Col = findHeader(ALIASES.w3w) || 'What3Words';
-  const hoCol = findHeader(ALIASES.hospital) || 'Hospital';
+  const w3Col = findHeader(ALIASES.w3w) || 'what3words';
+  const hoCol = findHeader(ALIASES.hospital) || 'Nearest A&E';
   for (const c of [pcCol, w3Col, hoCol]) if (!headers.includes(c)) { headers.push(c); rows.forEach(r => { if (!(c in r)) r[c] = ''; }); }
   results = [];
   $('run').disabled = true;
@@ -633,7 +637,7 @@ $('download').onclick = () => {
 };
 $('copy').onclick = async () => {
   const osCol = findHeader(ALIASES.os);
-  const pcCol = findHeader(ALIASES.postcode) || 'Postcode', w3Col = findHeader(ALIASES.w3w) || 'What3Words', hoCol = findHeader(ALIASES.hospital) || 'Hospital';
+  const pcCol = findHeader(ALIASES.postcode) || 'Postcode', w3Col = findHeader(ALIASES.w3w) || 'what3words', hoCol = findHeader(ALIASES.hospital) || 'Nearest A&E';
   const text = [[osCol, pcCol, w3Col, hoCol].join('\t'), ...rows.map(r => [r[osCol], r[pcCol], r[w3Col], r[hoCol]].map(v => String(v ?? '')).join('\t'))].join('\n');
   try { await navigator.clipboard.writeText(text); $('status').textContent = 'Copied: paste into the workbank (same row order).'; }
   catch (e) { $('status').textContent = 'Copy blocked by the browser.'; }
@@ -641,27 +645,36 @@ $('copy').onclick = async () => {
 
 
 // ------------------------------------------------------------------ TBS printer (port of TBS_template_batch_builder)
+// Excel column headings accepted for each field: the friendly name first, then the older ones.
 const PLACEHOLDER_ALIASES = {
-  WPP_REF: ['WPP_REF', 'WPP Ref', 'WPP Reference'],
-  TBS_REF: ['TBS_REF', 'TBS Ref', 'TBS Issue'],
-  DATE_REF: ['Planned Report Date'],
-  STRUCTURE_REF: ['ELR'],
-  WEEK_REF: ['WEEK_REF', 'Week Ref', 'Date of works', 'Planned Month', 'SUGGEST Exam Date', 'Suggest Exam Date'],
+  WPP_REF: ['WPP reference', 'WPP_REF', 'WPP Ref'],
+  TBS_REF: ['TBS reference', 'TBS_REF', 'TBS Ref', 'TBS Issue'],
+  DATE_REF: ['Report date', 'Planned Report Date'],
+  STRUCTURE_REF: ['ELR', 'Structure'],
+  WEEK_REF: ['Date of works', 'WEEK_REF', 'Week Ref', 'Planned Month', 'SUGGEST Exam Date', 'Suggest Exam Date'],
   EXNR_REF: ['Examiner'],
-  SIG_REF: ['sigRef', 'SIG_REF', 'Sig Ref', 'Signature Ref', 'Signature'],
-  E_TYPE: ['YR6 Exam'],
-  ASSET_ID: ['Unique No.'],
+  SIG_REF: ['Signature', 'sigRef', 'SIG_REF', 'Sig Ref', 'Signature Ref'],
+  E_TYPE: ['Exam type', 'YR6 Exam'],
+  ASSET_ID: ['Asset ID', 'Unique No.'],
   MILEAGE: ['Mileage'],
   CHAINS: ['Chains'],
-  STRUCNAME: ['ID'],
-  STRUC_TYPE: ['STRUC_TYPE', 'Structure Type', 'Structure type'],
-  GEO_LOC: ['Exam Area'],
-  OS_REF: ['OS Ref'],
-  POSTCODE_REF: ['POSTCODE_REF', 'Postcode Ref', 'Postcode'],
-  W3W_REF: ['W3W_REF', 'W3W Ref', 'What Three Words', 'What3Words'],
-  HOSP_REF: ['HOSP_REF', 'Hospital Ref', 'Nearest Hospital', 'Hospital'],
-  WELF_REF: ['WELF_REF', 'Welfare Ref', 'Nearest Welfare', 'Welfare'],
+  STRUCNAME: ['Structure name', 'ID'],
+  STRUC_TYPE: ['Structure type', 'STRUC_TYPE'],
+  GEO_LOC: ['Exam area'],
+  OS_REF: ['OS grid ref', 'OS Ref'],
+  POSTCODE_REF: ['Postcode', 'POSTCODE_REF', 'Postcode Ref'],
+  W3W_REF: ['what3words', 'W3W_REF', 'W3W Ref', 'What Three Words'],
+  HOSP_REF: ['Nearest A&E', 'HOSP_REF', 'Hospital Ref', 'Nearest Hospital', 'Hospital'],
+  WELF_REF: ['Welfare', 'WELF_REF', 'Welfare Ref', 'Nearest Welfare'],
 };
+// Friendly placeholder names: ++Examiner++ in the template means the same as {{EXNR_REF}}.
+const FRIENDLY = {
+  TBS_REF: 'TBS reference', STRUCTURE_REF: 'Structure', STRUC_TYPE: 'Structure type', E_TYPE: 'Exam type',
+  DATE_REF: 'Report date', WEEK_REF: 'Date of works', EXNR_REF: 'Examiner', SIG_REF: 'Signature', GEO_LOC: 'Exam area',
+  OS_REF: 'OS grid ref', POSTCODE_REF: 'Postcode', W3W_REF: 'what3words', HOSP_REF: 'Nearest A&E', WELF_REF: 'Welfare',
+  WPP_REF: 'WPP reference', ASSET_ID: 'Asset ID', MILEAGE: 'Mileage', CHAINS: 'Chains', STRUCNAME: 'Structure name',
+};
+const tokensFor = name => ['{{' + name + '}}', '++' + FRIENDLY[name] + '++'];
 const W_NS = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
 const REL_NS = 'http://schemas.openxmlformats.org/package/2006/relationships';
 const IMAGE_REL = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/image';
@@ -827,6 +840,14 @@ async function populateTemplate(replacements) {
   const ctDoc = parser.parseFromString(await zip.file('[Content_Types].xml').async('string'), 'application/xml');
   const parts = Object.keys(zip.files).filter(n => /^word\/(document|header\d*|footer\d*)\.xml$/.test(n));
   const sigRef = replacements['{{SIG_REF}}'];
+  const sigTokens = tokensFor('SIG_REF');
+  // every value under both its {{OLD}} and ++Friendly++ spelling
+  const allTokens = [];
+  for (const [token, value] of Object.entries(replacements)) {
+    const name = token.slice(2, -2);
+    allTokens.push([token, value]);
+    if (FRIENDLY[name]) allTokens.push(['++' + FRIENDLY[name] + '++', value]);
+  }
   for (const partPath of parts) {
     const doc = parser.parseFromString(await zip.file(partPath).async('string'), 'application/xml');
     const relsPath = partPath.replace(/^word\//, 'word/_rels/') + '.rels';
@@ -836,16 +857,17 @@ async function populateTemplate(replacements) {
     for (const p of [...doc.getElementsByTagNameNS(W_NS, 'p')]) {
       const nodes = textNodes(p); if (!nodes.length) continue;
       let text = paraText(nodes);
-      if (text.includes('{{SIG_REF}}')) {
-        replaceAcross(nodes, '{{SIG_REF}}', '');
+      for (const st of sigTokens) {
+        if (!text.includes(st)) continue;
+        replaceAcross(nodes, st, '');
         const sig = findSignature(sigRef);
         if (sig) { await insertPicture(zip, partPath, relsDoc, ctDoc, p, sig); relsChanged = true; }
         text = paraText(nodes);
       }
       const full = replacements['{{TBS_REF}}'] || '';
       for (const legacy of LEGACY_TBS) if (text.includes(legacy)) { replaceAcross(nodes, legacy, full); text = paraText(nodes); }
-      for (const [token, value] of Object.entries(replacements)) {
-        if (token === '{{SIG_REF}}') continue;
+      for (const [token, value] of allTokens) {
+        if (sigTokens.includes(token)) continue;
         if (text.includes(token)) { replaceAcross(nodes, token, value); text = paraText(nodes); }
       }
     }

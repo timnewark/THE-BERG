@@ -5,10 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#28536B">
-<title>TBS location lookup | The BERG</title>
+<title>TBS builder | The BERG</title>
 <link rel="icon" href="../assets/img/favicon.png" type="image/png">
 <link rel="apple-touch-icon" href="../assets/img/apple-touch-icon.png">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
   :root { --ink:#1c2a33; --muted:#5f6f7a; --line:#d7dee3; --teal:#28536B; --bg:#f4f6f8; --card:#fff; --red:#b3261e; --green:#1a7f37; }
   * { box-sizing:border-box; }
@@ -49,13 +50,17 @@
   .meta b { color:var(--ink); font-weight:600; }
   .links a { display:inline-block; margin:6px 12px 0 0; color:var(--teal); font-weight:600; font-size:14px; }
   .hosp { margin-top:6px; font-size:14px; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .grid2 label { font-weight:600; font-size:13px; }
+  .grid2 input { margin-top:4px; font-weight:400; }
+  @media (max-width:560px) { .grid2 { grid-template-columns:1fr; } }
 </style>
 </head>
 <body>
 <header>
   <a href="../">← The BERG</a>
-  <h1>TBS location lookup</h1>
-  <p>Drop in the workbank: OS Ref → nearest postcode, what3words and nearest A&amp;E, filled into the blank cells.</p>
+  <h1>TBS builder</h1>
+  <p>Drop in the workbank, fill the location blanks, then print the TBS documents from the Word template.</p>
 </header>
 <main>
   <div class="card">
@@ -73,6 +78,38 @@
     </div>
     <p class="hint">The downloaded workbook has the same sheets and data; cell formatting, formulas and macros are not kept, so if your workbank has those, copy the three columns from the table back into your own file instead.</p>
     <div class="tablewrap" id="tablewrap" hidden><table id="table"></table></div>
+  </div>
+
+  <div class="card">
+    <h2>2. Print the TBS documents</h2>
+    <label class="drop" id="tdrop">
+      <input type="file" id="tfile" accept=".docx">
+      <div><b>Drop the Word TBS template here</b> or tap to choose</div>
+      <div class="hint">A .docx with {{WPP_REF}}, {{TBS_REF}}, {{STRUCTURE_REF}}, {{SIG_REF}} … placeholders. Headers, footers, tables and text boxes are all filled.</div>
+    </label>
+    <label class="drop" id="sdrop" style="margin-top:10px">
+      <input type="file" id="sfile" accept=".jpg,.jpeg,.png" multiple>
+      <div><b>Drop signature images here</b> (optional, several at once)</div>
+      <div class="hint">Named as the sigRef column expects: <b>SIG_TN.jpg</b>, <b>SIG_AB.png</b> … Inserted at {{SIG_REF}}, 10 mm wide.</div>
+    </label>
+    <div class="status" id="tstatus" style="margin-top:8px"></div>
+    <details style="margin-top:12px">
+      <summary>Defaults used when a cell is blank</summary>
+      <div class="grid2" style="margin-top:10px">
+        <label>WPP ref <input type="text" id="d_wpp" value="XEIAD-WPP-Y5-6-HRE-ALL-1.0"></label>
+        <label>TBS ref prefix <input type="text" id="d_tbsprefix" value="XEIAD_SSTBS_HRE_Y6"></label>
+        <label>Report date <input type="text" id="d_date" placeholder="dd/mm/yy"></label>
+        <label>Examiner <input type="text" id="d_exnr" placeholder="Name as it should appear"></label>
+        <label>Structure type <input type="text" id="d_structype" value="Overbridge"></label>
+        <label>Signature ref <input type="text" id="d_sig" placeholder="e.g. SIG_TN"></label>
+      </div>
+      <p class="hint">Remembered in this browser. Excel always wins where a cell is filled.</p>
+    </details>
+    <div class="row" style="margin-top:12px">
+      <button class="primary" id="print" disabled>Build TBS documents (zip)</button>
+      <span class="status" id="pstatus"></span>
+    </div>
+    <div class="tablewrap" id="plogwrap" hidden><table id="plog"></table></div>
   </div>
 
   <div class="card">
@@ -502,6 +539,7 @@ function loadFile(file) {
       const withRef = rows.filter(r => String(r[osCol]).trim()).length;
       $('status').textContent = `${file.name}: sheet "${sheetName}", ${rows.length} rows, ${withRef} with an OS Ref (column "${osCol}").`;
       $('run').disabled = false; $('download').disabled = true; $('copy').disabled = true;
+      printStatus();
       $('tablewrap').hidden = true;
     } catch (err) { $('status').textContent = 'Could not read that file: ' + err.message; }
   };
@@ -573,6 +611,252 @@ $('copy').onclick = async () => {
   const text = [[osCol, pcCol, w3Col, hoCol].join('\t'), ...rows.map(r => [r[osCol], r[pcCol], r[w3Col], r[hoCol]].map(v => String(v ?? '')).join('\t'))].join('\n');
   try { await navigator.clipboard.writeText(text); $('status').textContent = 'Copied: paste into the workbank (same row order).'; }
   catch (e) { $('status').textContent = 'Copy blocked by the browser.'; }
+};
+
+
+// ------------------------------------------------------------------ TBS printer (port of TBS_template_batch_builder)
+const PLACEHOLDER_ALIASES = {
+  WPP_REF: ['WPP_REF', 'WPP Ref', 'WPP Reference'],
+  TBS_REF: ['TBS_REF', 'TBS Ref', 'TBS Issue'],
+  DATE_REF: ['Planned Report Date'],
+  STRUCTURE_REF: ['ELR'],
+  WEEK_REF: ['WEEK_REF', 'Week Ref', 'Date of works', 'Planned Month', 'SUGGEST Exam Date', 'Suggest Exam Date'],
+  EXNR_REF: ['Examiner'],
+  SIG_REF: ['sigRef', 'SIG_REF', 'Sig Ref', 'Signature Ref', 'Signature'],
+  E_TYPE: ['YR6 Exam'],
+  ASSET_ID: ['Unique No.'],
+  MILEAGE: ['Mileage'],
+  CHAINS: ['Chains'],
+  STRUCNAME: ['ID'],
+  STRUC_TYPE: ['STRUC_TYPE', 'Structure Type', 'Structure type'],
+  GEO_LOC: ['Exam Area'],
+  OS_REF: ['OS Ref'],
+  POSTCODE_REF: ['POSTCODE_REF', 'Postcode Ref', 'Postcode'],
+  W3W_REF: ['W3W_REF', 'W3W Ref', 'What Three Words', 'What3Words'],
+  HOSP_REF: ['HOSP_REF', 'Hospital Ref', 'Nearest Hospital', 'Hospital'],
+  WELF_REF: ['WELF_REF', 'Welfare Ref', 'Nearest Welfare', 'Welfare'],
+};
+const W_NS = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+const REL_NS = 'http://schemas.openxmlformats.org/package/2006/relationships';
+const IMAGE_REL = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/image';
+const SIGNATURE_WIDTH_EMU = 10 * 36000;   // 10 mm
+
+let templateBytes = null, templateName = '';
+const signatures = new Map();   // lower-case file name -> { name, bytes, ext, width, height }
+
+['d_wpp','d_tbsprefix','d_date','d_exnr','d_structype','d_sig'].forEach(id => {
+  const saved = store.get('tbs_' + id); if (saved) $(id).value = saved;
+  $(id).addEventListener('change', () => store.set('tbs_' + id, $(id).value));
+});
+if (!$('d_date').value) { const d = new Date(); $('d_date').value = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getFullYear()).slice(2)}`; }
+
+function wireDrop(dropId, inputId, onFiles) {
+  const d = $(dropId);
+  $(inputId).addEventListener('change', e => onFiles([...e.target.files]));
+  ['dragenter','dragover'].forEach(ev => d.addEventListener(ev, e => { e.preventDefault(); d.classList.add('over'); }));
+  ['dragleave','drop'].forEach(ev => d.addEventListener(ev, e => { e.preventDefault(); d.classList.remove('over'); }));
+  d.addEventListener('drop', e => onFiles([...e.dataTransfer.files]));
+}
+function printStatus() {
+  const parts = [];
+  parts.push(templateBytes ? `Template: ${templateName}` : 'No template yet');
+  parts.push(signatures.size ? `Signatures: ${[...signatures.values()].map(s => s.name).join(', ')}` : 'No signatures (SIG_REF will be left blank)');
+  $('tstatus').textContent = parts.join(' · ');
+  $('print').disabled = !(templateBytes && rows.length);
+}
+wireDrop('tdrop', 'tfile', async files => {
+  const f = files.find(f => /\.docx$/i.test(f.name)); if (!f) { $('tstatus').textContent = 'That is not a .docx'; return; }
+  templateBytes = await f.arrayBuffer(); templateName = f.name; printStatus();
+});
+wireDrop('sdrop', 'sfile', async files => {
+  for (const f of files) {
+    if (!/\.(jpe?g|png)$/i.test(f.name)) continue;
+    const bytes = await f.arrayBuffer();
+    const dims = await new Promise(res => { const img = new Image(); img.onload = () => res({ w: img.naturalWidth, h: img.naturalHeight }); img.onerror = () => res({ w: 4, h: 1 }); img.src = URL.createObjectURL(new Blob([bytes])); });
+    signatures.set(f.name.toLowerCase(), { name: f.name, bytes, ext: f.name.split('.').pop().toLowerCase().replace('jpg','jpeg'), width: dims.w, height: dims.h });
+  }
+  printStatus();
+});
+
+function cleanText(v) {
+  if (v === null || v === undefined) return '';
+  if (v instanceof Date) return isNaN(v) ? '' : `${String(v.getDate()).padStart(2,'0')}/${String(v.getMonth()+1).padStart(2,'0')}/${v.getFullYear()}`;
+  if (typeof v === 'number') return Number.isInteger(v) ? String(v) : String(v);
+  return String(v).trim();
+}
+function safeFilename(v) {
+  v = cleanText(v).replace(/[<>:"/\\|?*]+/g, '_').replace(/\s+/g, '_');
+  return v.replace(/^[ ._]+|[ ._]+$/g, '') || 'TBS';
+}
+function rowValue(row, aliases) {
+  const keys = Object.keys(row);
+  for (const a of aliases) { const k = keys.find(k => k.trim().toLowerCase() === a.trim().toLowerCase()); if (k !== undefined) return cleanText(row[k]); }
+  return '';
+}
+function missingColumns() {
+  const have = new Set(headers.map(h => String(h).trim().toLowerCase()));
+  return Object.entries(PLACEHOLDER_ALIASES).filter(([name, aliases]) => name !== 'TBS_REF' && !aliases.some(a => have.has(a.trim().toLowerCase()))).map(([n]) => n);
+}
+function defaults() {
+  return { WPP_REF: $('d_wpp').value.trim(), DATE_REF: $('d_date').value.trim(), EXNR_REF: $('d_exnr').value.trim(), STRUC_TYPE: $('d_structype').value.trim(), SIG_REF: $('d_sig').value.trim() };
+}
+function buildReplacements(row) {
+  const d = defaults(), out = {};
+  for (const [name, aliases] of Object.entries(PLACEHOLDER_ALIASES)) {
+    let v = rowValue(row, aliases);
+    if (v === '') v = d[name] || '';
+    out['{{' + name + '}}'] = v;
+  }
+  return out;
+}
+
+// --- Word XML helpers
+function textNodes(p) { return [...p.getElementsByTagNameNS(W_NS, 't')]; }
+function paraText(nodes) { return nodes.map(n => n.textContent || '').join(''); }
+// Replace a token even when Word has split it across several runs (same algorithm as the script).
+function replaceAcross(nodes, token, replacement) {
+  for (;;) {
+    const texts = nodes.map(n => n.textContent || '');
+    const combined = texts.join('');
+    const start = combined.indexOf(token);
+    if (start < 0) return;
+    const finish = start + token.length;
+    const offsets = []; let cur = 0;
+    for (const t of texts) { offsets.push(cur); cur += t.length; }
+    let si = null, fi = null;
+    for (let i = 0; i < texts.length; i++) {
+      const end = offsets[i] + texts[i].length;
+      if (si === null && start < end) si = i;
+      if (fi === null && finish <= end) { fi = i; break; }
+    }
+    if (si === null || fi === null) return;
+    const sl = start - offsets[si], fl = finish - offsets[fi];
+    if (si === fi) {
+      nodes[si].textContent = texts[si].slice(0, sl) + replacement + texts[si].slice(fl);
+    } else {
+      nodes[si].textContent = texts[si].slice(0, sl) + replacement;
+      for (let i = si + 1; i < fi; i++) nodes[i].textContent = '';
+      nodes[fi].textContent = texts[fi].slice(fl);
+    }
+    // keep spaces when a node now starts/ends with one
+    [nodes[si], nodes[fi]].forEach(n => { if (/^\s|\s$/.test(n.textContent)) n.setAttributeNS('http://www.w3.org/XML/1998/namespace', 'xml:space', 'preserve'); });
+  }
+}
+const LEGACY_TBS = ['XEIAD_HRE_Y6_{{TBS_REF}}', 'XEIAD-HRE_Y6-{{TBS_REF}}', 'XEIAD_HRE_Y6-{{TBS_REF}}', 'XEIAD-HRE_Y6_{{TBS_REF}}'];
+
+function findSignature(ref) {
+  ref = cleanText(ref); if (!ref) return null;
+  const base = ref.split(/[\\/]/).pop();
+  const hasExt = /\.[a-z0-9]+$/i.test(base);
+  const stem = hasExt ? base.replace(/\.[^.]+$/, '') : base;
+  const candidates = [];
+  if (hasExt) candidates.push(base); else ['.jpg','.jpeg','.png'].forEach(e => candidates.push(stem + e));
+  const parts = stem.split('_');
+  if (parts.length === 2 && parts[1].toLowerCase() === 'sig') ['.jpg','.jpeg','.png'].forEach(e => candidates.push('SIG_' + parts[0] + e));
+  for (const c of candidates) { const hit = signatures.get(c.toLowerCase()); if (hit) return hit; }
+  const stems = new Set([stem.toLowerCase()]); if (parts.length === 2 && parts[1].toLowerCase() === 'sig') stems.add(('sig_' + parts[0]).toLowerCase());
+  for (const sig of signatures.values()) if (stems.has(sig.name.replace(/\.[^.]+$/, '').toLowerCase())) return sig;
+  throw new Error(`No signature image matching "${ref}" was dropped in`);
+}
+
+// Insert an inline picture run at the end of paragraph p; returns nothing. Adds the media part,
+// the relationship for this XML part, and the content type.
+let drawingId = 9000;
+async function insertPicture(zip, partPath, relsDoc, ctDoc, p, sig) {
+  const mediaName = `sig_${drawingId}.${sig.ext === 'jpeg' ? 'jpeg' : 'png'}`;
+  zip.file('word/media/' + mediaName, sig.bytes, { createFolders: false });
+  // content type default for the extension
+  const ext = mediaName.split('.').pop();
+  const defaults = [...ctDoc.documentElement.getElementsByTagName('Default')];
+  if (!defaults.some(d => d.getAttribute('Extension').toLowerCase() === ext)) {
+    const el = ctDoc.createElementNS(ctDoc.documentElement.namespaceURI, 'Default');
+    el.setAttribute('Extension', ext); el.setAttribute('ContentType', ext === 'png' ? 'image/png' : 'image/jpeg');
+    ctDoc.documentElement.insertBefore(el, ctDoc.documentElement.firstChild);
+  }
+  // relationship
+  const rId = 'rIdSig' + drawingId;
+  const rel = relsDoc.createElementNS(REL_NS, 'Relationship');
+  rel.setAttribute('Id', rId); rel.setAttribute('Type', IMAGE_REL); rel.setAttribute('Target', 'media/' + mediaName);
+  relsDoc.documentElement.appendChild(rel);
+  const cx = SIGNATURE_WIDTH_EMU, cy = Math.round(SIGNATURE_WIDTH_EMU * sig.height / sig.width);
+  const id = drawingId++;
+  const xml = `<w:r xmlns:w="${W_NS}" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:docPr id="${id}" name="Signature ${id}"/><wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="${id}" name="${mediaName}"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${rId}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`;
+  const run = new DOMParser().parseFromString(xml, 'application/xml').documentElement;
+  p.appendChild(p.ownerDocument.importNode(run, true));
+}
+
+async function populateTemplate(replacements) {
+  const zip = await JSZip.loadAsync(templateBytes);
+  const parser = new DOMParser(), ser = new XMLSerializer();
+  const ctDoc = parser.parseFromString(await zip.file('[Content_Types].xml').async('string'), 'application/xml');
+  const parts = Object.keys(zip.files).filter(n => /^word\/(document|header\d*|footer\d*)\.xml$/.test(n));
+  const sigRef = replacements['{{SIG_REF}}'];
+  for (const partPath of parts) {
+    const doc = parser.parseFromString(await zip.file(partPath).async('string'), 'application/xml');
+    const relsPath = partPath.replace(/^word\//, 'word/_rels/') + '.rels';
+    let relsDoc = zip.file(relsPath) ? parser.parseFromString(await zip.file(relsPath).async('string'), 'application/xml')
+      : parser.parseFromString(`<Relationships xmlns="${REL_NS}"/>`, 'application/xml');
+    let relsChanged = false;
+    for (const p of [...doc.getElementsByTagNameNS(W_NS, 'p')]) {
+      const nodes = textNodes(p); if (!nodes.length) continue;
+      let text = paraText(nodes);
+      if (text.includes('{{SIG_REF}}')) {
+        replaceAcross(nodes, '{{SIG_REF}}', '');
+        const sig = findSignature(sigRef);
+        if (sig) { await insertPicture(zip, partPath, relsDoc, ctDoc, p, sig); relsChanged = true; }
+        text = paraText(nodes);
+      }
+      const full = replacements['{{TBS_REF}}'] || '';
+      for (const legacy of LEGACY_TBS) if (text.includes(legacy)) { replaceAcross(nodes, legacy, full); text = paraText(nodes); }
+      for (const [token, value] of Object.entries(replacements)) {
+        if (token === '{{SIG_REF}}') continue;
+        if (text.includes(token)) { replaceAcross(nodes, token, value); text = paraText(nodes); }
+      }
+    }
+    zip.file(partPath, ser.serializeToString(doc));
+    if (relsChanged) zip.file(relsPath, ser.serializeToString(relsDoc));
+  }
+  zip.file('[Content_Types].xml', ser.serializeToString(ctDoc));
+  return zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+}
+
+$('print').onclick = async () => {
+  const prefix = $('d_tbsprefix').value.trim() || 'XEIAD_SSTBS_HRE_Y6';
+  const out = new JSZip();
+  const log = [];
+  let created = 0;
+  const missing = missingColumns();
+  $('print').disabled = true;
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const rep = buildReplacements(row);
+    const structureRef = rep['{{STRUCTURE_REF}}'], eType = rep['{{E_TYPE}}'], assetId = rep['{{ASSET_ID}}'];
+    const mileage = rep['{{MILEAGE}}'], chains = rep['{{CHAINS}}'], strucname = rep['{{STRUCNAME}}'];
+    if (['tm list', 'asap'].includes(structureRef.toLowerCase())) continue;
+    if (![structureRef, assetId, mileage, chains, strucname, eType].some(Boolean)) continue;
+    const eCode = eType.slice(0, 3).toUpperCase();
+    rep['{{STRUCTURE_REF}}'] = strucname ? [structureRef, strucname].filter(Boolean).join(' ')
+      : [structureRef, `${mileage}m ${chains}c`.trim()].filter(Boolean).join(' ');
+    const suffix = (strucname ? [assetId, structureRef, strucname] : [assetId, structureRef, `${mileage}m_${chains}c`]).filter(Boolean).join('_');
+    const tbsRef = safeFilename(`${prefix}_${suffix}_${eCode}`);
+    rep['{{TBS_REF}}'] = tbsRef;
+    $('pstatus').textContent = `Building ${tbsRef} …`;
+    try {
+      const blob = await populateTemplate(rep);
+      out.file(tbsRef + '.docx', blob);
+      created++;
+      log.push({ row: i + 2, name: tbsRef, ok: true });
+    } catch (e) {
+      log.push({ row: i + 2, name: tbsRef, ok: false, error: e.message });
+    }
+  }
+  $('plog').innerHTML = '<tr><th>Row</th><th>Document</th><th>Result</th></tr>' + log.map(l => `<tr><td>${l.row}</td><td>${esc(l.name)}</td><td class="${l.ok ? 'filled' : 'error'}">${l.ok ? 'created' : esc(l.error)}</td></tr>`).join('');
+  $('plogwrap').hidden = !log.length;
+  $('print').disabled = false;
+  if (!created) { $('pstatus').textContent = 'No documents created. Check the E_TYPE, ASSET ID, STRUCTURE_REF, MILEAGE and CHAINS columns.'; return; }
+  const zipBlob = await out.generateAsync({ type: 'blob' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(zipBlob); a.download = 'SSTBS_Output.zip'; document.body.appendChild(a); a.click(); a.remove();
+  $('pstatus').textContent = `Created ${created} document(s) in SSTBS_Output.zip` + (missing.length ? `. Excel columns not found (left blank): ${missing.join(', ')}` : '');
 };
 
 // ------------------------------------------------------------------ typed refs

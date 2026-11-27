@@ -1,9 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="512" height="512">
-  <rect width="64" height="64" rx="14" fill="#40545C"/>
-  <!-- parapet line -->
-  <rect x="7" y="19" width="50" height="3" fill="#ffffff"/>
-  <!-- deck and piers with two tall arches cut out -->
-  <path fill="#ffffff" fill-rule="evenodd" d="M7,24 H57 V52 H51 V40 C51,33 46.5,29 41,29 C35.5,29 32,33 32,40 V52 H32 V40 C32,33 28.5,29 23,29 C17.5,29 13,33 13,40 V52 H7 Z"/>
-  <!-- accent dot, as in "The BERG." -->
-  <circle cx="52" cy="12" r="4" fill="#D7A55F"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"><rect width="64" height="64" rx="14" fill="#40545C"/><path fill="#ffffff" fill-rule="evenodd" d="M8,56 V40 A24,24 0 0 1 56,40 V56 H49 V40 A17,17 0 0 0 15,40 V56 Z"/><line x1="16.5" y1="34.4" x2="9.0" y2="31.6" stroke="#40545C" stroke-width="1.8"/><line x1="19.4" y1="29.4" x2="13.2" y2="24.3" stroke="#40545C" stroke-width="1.8"/><line x1="23.7" y1="25.7" x2="19.7" y2="18.8" stroke="#40545C" stroke-width="1.8"/><line x1="29.1" y1="23.8" x2="27.7" y2="15.9" stroke="#40545C" stroke-width="1.8"/><line x1="34.9" y1="23.8" x2="36.3" y2="15.9" stroke="#40545C" stroke-width="1.8"/><line x1="40.2" y1="25.7" x2="44.2" y2="18.8" stroke="#40545C" stroke-width="1.8"/><line x1="44.6" y1="29.4" x2="50.8" y2="24.3" stroke="#40545C" stroke-width="1.8"/><line x1="47.5" y1="34.4" x2="55.0" y2="31.6" stroke="#40545C" stroke-width="1.8"/><path fill="#ffffff" d="M28.5,15 H35.5 L34.3,23.5 H29.7 Z"/><rect x="6" y="54" width="52" height="4" rx="1" fill="#ffffff"/></svg>

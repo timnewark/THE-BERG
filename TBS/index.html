@@ -74,7 +74,7 @@
       <summary>Columns the workbank needs</summary>
       <div class="tablewrap" style="max-height:none;margin-top:8px">
       <table>
-        <tr><th>Column heading</th><th>Used for</th><th>Needed?</th></tr>
+        <tr><th>Column heading (with or without the ++)</th><th>Used for</th><th>Needed?</th></tr>
         <tr><td><b>Asset ID</b> <span class="kept">(or Unique No.)</span></td><td>Goes into the TBS reference and the filename</td><td class="filled">Yes</td></tr>
         <tr><td><b>ELR</b></td><td>++Structure++, with the structure name</td><td class="filled">Yes</td></tr>
         <tr><td><b>Structure name</b> <span class="kept">(or ID)</span></td><td>e.g. “43” → “AYT 43”</td><td class="filled">Yes, or Mileage + Chains</td></tr>
@@ -545,7 +545,7 @@ const ALIASES = {
 };
 let workbook = null, sheetName = '', rows = [], headers = [], fileName = '', results = [];
 function findHeader(list) {
-  for (const h of headers) if (list.includes(String(h).trim().toLowerCase())) return h;
+  for (const h of headers) if (list.includes(normHead(h))) return h;
   return null;
 }
 function loadFile(file) {
@@ -737,14 +737,16 @@ function safeFilename(v) {
   v = cleanText(v).replace(/[<>:"/\\|?*]+/g, '_').replace(/\s+/g, '_');
   return v.replace(/^[ ._]+|[ ._]+$/g, '') || 'TBS';
 }
+// "++Asset ID++" and "Asset ID" are the same heading.
+const normHead = h => String(h).trim().replace(/^\++|\++$/g, '').trim().toLowerCase();
 function rowValue(row, aliases) {
   const keys = Object.keys(row);
-  for (const a of aliases) { const k = keys.find(k => k.trim().toLowerCase() === a.trim().toLowerCase()); if (k !== undefined) return cleanText(row[k]); }
+  for (const a of aliases) { const k = keys.find(k => normHead(k) === normHead(a)); if (k !== undefined) return cleanText(row[k]); }
   return '';
 }
 function missingColumns() {
-  const have = new Set(headers.map(h => String(h).trim().toLowerCase()));
-  return Object.entries(PLACEHOLDER_ALIASES).filter(([name, aliases]) => name !== 'TBS_REF' && !aliases.some(a => have.has(a.trim().toLowerCase()))).map(([n]) => n);
+  const have = new Set(headers.map(normHead));
+  return Object.entries(PLACEHOLDER_ALIASES).filter(([name, aliases]) => name !== 'TBS_REF' && !aliases.some(a => have.has(normHead(a)))).map(([n]) => n);
 }
 function defaults() {
   return { WPP_REF: $('d_wpp').value.trim(), DATE_REF: $('d_date').value.trim(), EXNR_REF: $('d_exnr').value.trim(), STRUC_TYPE: $('d_structype').value.trim(), SIG_REF: $('d_sig').value.trim() };

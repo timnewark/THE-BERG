@@ -81,30 +81,31 @@
   </div>
 
   <div class="card">
-    <h2>2. Print the TBS documents</h2>
+    <h2>2. Your details</h2>
+    <div class="grid2">
+      <label>Examiner (name on the TBS) <input type="text" id="d_exnr" placeholder="Name as it should appear"></label>
+      <label>Signature file to use <input type="text" id="d_sig" placeholder="e.g. SIG_TN (matches the image dropped below)"></label>
+      <label>Report date <input type="text" id="d_date" placeholder="dd/mm/yy"></label>
+      <label>Structure type <input type="text" id="d_structype" value="Overbridge"></label>
+      <label>WPP ref <input type="text" id="d_wpp" value="XEIAD-WPP-Y5-6-HRE-ALL-1.0"></label>
+      <label>TBS ref prefix <input type="text" id="d_tbsprefix" value="XEIAD_SSTBS_HRE_Y6"></label>
+    </div>
+    <p class="hint">Used wherever the workbank cell is blank (a filled Excel cell always wins). Remembered in this browser.</p>
+    <label class="drop" id="sdrop" style="margin-top:12px">
+      <input type="file" id="sfile" accept=".jpg,.jpeg,.png" multiple>
+      <div><b>Drop your signature image here</b> (jpg or png; several at once if the workbank names different examiners)</div>
+      <div class="hint">Named as the sigRef column or the field above expects: <b>SIG_TN.jpg</b>, <b>SIG_AB.png</b> … Inserted at {{SIG_REF}}, 10 mm wide.</div>
+    </label>
+  </div>
+
+  <div class="card">
+    <h2>3. Print the TBS documents</h2>
     <label class="drop" id="tdrop">
       <input type="file" id="tfile" accept=".docx">
       <div><b>Drop the Word TBS template here</b> or tap to choose</div>
       <div class="hint">A .docx with {{WPP_REF}}, {{TBS_REF}}, {{STRUCTURE_REF}}, {{SIG_REF}} … placeholders. Headers, footers, tables and text boxes are all filled.</div>
     </label>
-    <label class="drop" id="sdrop" style="margin-top:10px">
-      <input type="file" id="sfile" accept=".jpg,.jpeg,.png" multiple>
-      <div><b>Drop signature images here</b> (optional, several at once)</div>
-      <div class="hint">Named as the sigRef column expects: <b>SIG_TN.jpg</b>, <b>SIG_AB.png</b> … Inserted at {{SIG_REF}}, 10 mm wide.</div>
-    </label>
     <div class="status" id="tstatus" style="margin-top:8px"></div>
-    <details style="margin-top:12px">
-      <summary>Defaults used when a cell is blank</summary>
-      <div class="grid2" style="margin-top:10px">
-        <label>WPP ref <input type="text" id="d_wpp" value="XEIAD-WPP-Y5-6-HRE-ALL-1.0"></label>
-        <label>TBS ref prefix <input type="text" id="d_tbsprefix" value="XEIAD_SSTBS_HRE_Y6"></label>
-        <label>Report date <input type="text" id="d_date" placeholder="dd/mm/yy"></label>
-        <label>Examiner <input type="text" id="d_exnr" placeholder="Name as it should appear"></label>
-        <label>Structure type <input type="text" id="d_structype" value="Overbridge"></label>
-        <label>Signature ref <input type="text" id="d_sig" placeholder="e.g. SIG_TN"></label>
-      </div>
-      <p class="hint">Remembered in this browser. Excel always wins where a cell is filled.</p>
-    </details>
     <div class="row" style="margin-top:12px">
       <button class="primary" id="print" disabled>Build TBS documents (zip)</button>
       <span class="status" id="pstatus"></span>

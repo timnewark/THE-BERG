@@ -151,10 +151,10 @@
 
   <div class="card">
     <details id="keybox">
-      <summary>what3words API key</summary>
+      <summary>what3words: using the site's own key</summary>
       <div style="margin-top:10px">
-        <input type="password" id="key" placeholder="Paste your what3words API key" autocomplete="off">
-        <p class="hint">Free from <a href="https://developer.what3words.com/" target="_blank" rel="noopener">developer.what3words.com</a>. Kept only in this browser. Without a key, postcode and A&amp;E still fill; What3Words is left blank.</p>
+        <input type="password" id="key" placeholder="Optional: your own what3words API key" autocomplete="off">
+        <p class="hint">Nothing to set up. If the site key ever stops working, a key of your own from <a href="https://developer.what3words.com/" target="_blank" rel="noopener">developer.what3words.com</a> pasted here takes over (kept only in this browser).</p>
       </div>
     </details>
   </div>
@@ -508,9 +508,10 @@ async function hospitals(lat, lon) {
 
 // ------------------------------------------------------------------ shared
 const $ = id => document.getElementById(id);
+// what3words API key, restricted to the-berg.uk in the what3words console (HTTP referrer).
+const W3W_KEY = 'S8HZ18YC';
 const store = { get(k){ try { return localStorage.getItem(k) || ''; } catch(e){ return ''; } }, set(k,v){ try { localStorage.setItem(k,v); } catch(e){} } };
 $('key').value = store.get('w3w_key');
-if (!$('key').value) $('keybox').open = true;
 $('key').addEventListener('change', () => store.set('w3w_key', $('key').value.trim()));
 function esc(s){ return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 const cache = new Map();
@@ -581,7 +582,7 @@ drop.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) l
 
 let lookedUp = false;
 async function lookupBlanks() {
-  const key = $('key').value.trim();
+  const key = $('key').value.trim() || W3W_KEY;
   const osCol = findHeader(ALIASES.os);
   const pcCol = findHeader(ALIASES.postcode) || 'Postcode';
   const w3Col = findHeader(ALIASES.w3w) || 'What3Words';
@@ -607,7 +608,7 @@ async function lookupBlanks() {
     n++;
     renderTable(pcCol, w3Col, hoCol);
   }
-  $('status').textContent = `Done: ${n} row(s) looked up.` + (key ? '' : ' No what3words key, so What3Words left blank.');
+  $('status').textContent = `Done: ${n} row(s) looked up.`;
   renderTable(pcCol, w3Col, hoCol);
   $('download').disabled = false; $('copy').disabled = false; $('run').disabled = false;
   lookedUp = true;
@@ -897,7 +898,7 @@ $('print').onclick = async () => {
 
 // ------------------------------------------------------------------ typed refs
 $('go').onclick = async () => {
-  const key = $('key').value.trim();
+  const key = $('key').value.trim() || W3W_KEY;
   const lines = $('refs').value.split(/\n/).map(s => s.trim()).filter(Boolean);
   const out = $('out'); out.innerHTML = '';
   for (const line of lines) {

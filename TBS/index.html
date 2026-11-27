@@ -26,6 +26,8 @@
   textarea, input[type=text], input[type=password] { width:100%; font:inherit; padding:12px; border:1px solid var(--line); border-radius:10px; background:#fff; color:var(--ink); }
   textarea { min-height:100px; resize:vertical; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:15px; }
   .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  select.sel { width:100%; font:inherit; padding:12px; border:1px solid var(--line); border-radius:10px; background:#fff; margin-top:4px; }
+  select.sel + input { margin-top:6px; }
   button { font:inherit; font-weight:600; border:0; border-radius:12px; padding:12px 18px; cursor:pointer; min-height:46px; }
   button:disabled { opacity:.5; cursor:default; }
   .primary { background:var(--teal); color:#fff; }
@@ -109,14 +111,30 @@
     <h2>2. Your details</h2>
     <div class="grid2">
       <label>Examiner (name on the TBS) <input type="text" id="d_exnr" placeholder="Name as it should appear"></label>
-      <label>Signature file to use <input type="text" id="d_sig" placeholder="e.g. SIG_TN (matches the image dropped below)"></label>
+      <label>Signature file to use <input type="text" id="d_sig" placeholder="e.g. SIG_TN (matches an image dropped below) — or draw one"></label>
       <label>Report date <input type="text" id="d_date" placeholder="dd/mm/yy"></label>
       <label>Structure type <input type="text" id="d_structype" value="Overbridge"></label>
-      <label>WPP ref <input type="text" id="d_wpp" value="XEIAD-WPP-Y5-6-HRE-ALL-1.0"></label>
-      <label>TBS ref prefix <input type="text" id="d_tbsprefix" value="XEIAD_SSTBS_HRE_Y6"></label>
+      <label>WPP ref
+        <select id="d_wpp_sel" class="sel"><option>XEIAD-WPP-Y5-6-HRE-ALL-1.0</option><option value="__custom">Other…</option></select>
+        <input type="text" id="d_wpp" value="XEIAD-WPP-Y5-6-HRE-ALL-1.0" placeholder="Type the WPP ref" hidden>
+      </label>
+      <label>TBS ref prefix
+        <select id="d_tbsprefix_sel" class="sel"><option>XEIAD_SSTBS_HRE_Y6</option><option value="__custom">Other…</option></select>
+        <input type="text" id="d_tbsprefix" value="XEIAD_SSTBS_HRE_Y6" placeholder="Type the TBS ref prefix" hidden>
+      </label>
     </div>
     <p class="hint">Used wherever the workbank cell is blank (a filled Excel cell always wins). Remembered in this browser.</p>
-    <label class="drop" id="sdrop" style="margin-top:12px">
+    <div style="margin-top:12px">
+      <b>Draw your signature</b> <span class="hint">(mouse, finger or pen — saved as SIG_DRAWN and remembered in this browser)</span>
+      <canvas id="sigpad" width="800" height="240" style="display:block;width:100%;max-width:520px;height:auto;aspect-ratio:10/3;background:#fff;border:1px solid var(--line);border-radius:10px;margin-top:6px;touch-action:none;cursor:crosshair"></canvas>
+      <div class="row" style="margin-top:8px;gap:8px;display:flex;flex-wrap:wrap">
+        <button class="primary" id="siguse" type="button">Use this signature</button>
+        <button class="ghost" id="sigclear" type="button">Clear</button>
+        <span class="hint" id="sigstatus" style="align-self:center"></span>
+      </div>
+    </div>
+    <p class="hint" style="margin:14px 0 4px">Or drop an image of it:</p>
+    <label class="drop" id="sdrop" style="margin-top:0">
       <input type="file" id="sfile" accept=".jpg,.jpeg,.png" multiple>
       <div><b>Drop your signature image here</b> (jpg or png; several at once if the workbank names different examiners)</div>
       <div class="hint">Named as the sigRef column or the field above expects: <b>SIG_TN.jpg</b>, <b>SIG_AB.png</b> … Inserted at ++Signature++, 10 mm wide.</div>
@@ -725,6 +743,19 @@ const signatures = new Map();   // lower-case file name -> { name, bytes, ext, w
   const saved = store.get('tbs_' + id); if (saved) $(id).value = saved;
   $(id).addEventListener('change', () => store.set('tbs_' + id, $(id).value));
 });
+// WPP / TBS prefix dropdowns: the select sets the text field; "Other…" reveals it for typing
+[['d_wpp_sel','d_wpp'],['d_tbsprefix_sel','d_tbsprefix']].forEach(([selId, inId]) => {
+  const sel = $(selId), inp = $(inId);
+  const sync = () => {
+    const known = [...sel.options].some(o => o.value !== '__custom' && o.value === inp.value);
+    sel.value = known ? inp.value : '__custom'; inp.hidden = known;
+  };
+  sync();
+  sel.addEventListener('change', () => {
+    if (sel.value === '__custom') { inp.hidden = false; inp.focus(); }
+    else { inp.value = sel.value; inp.hidden = true; store.set('tbs_' + inId, inp.value); }
+  });
+});
 if (!$('d_date').value) { const d = new Date(); $('d_date').value = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getFullYear()).slice(2)}`; }
 
 function wireDrop(dropId, inputId, onFiles) {
@@ -745,6 +776,46 @@ wireDrop('tdrop', 'tfile', async files => {
   const f = files.find(f => /\.docx$/i.test(f.name)); if (!f) { $('tstatus').textContent = 'That is not a .docx'; return; }
   templateBytes = await f.arrayBuffer(); templateName = f.name; printStatus();
 });
+// ---- Signature pad ----
+(function () {
+  const DRAWN = 'SIG_DRAWN.png';
+  const cv = $('sigpad'), ctx = cv.getContext('2d');
+  ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#1a1a1a';
+  let drawing = false, strokes = 0;
+  const pos = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) * cv.width / r.width, y: (e.clientY - r.top) * cv.height / r.height }; };
+  cv.addEventListener('pointerdown', e => { e.preventDefault(); cv.setPointerCapture(e.pointerId); drawing = true; const p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x + 0.1, p.y); ctx.stroke(); strokes++; });
+  cv.addEventListener('pointermove', e => { if (!drawing) return; e.preventDefault(); const p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); });
+  ['pointerup','pointercancel','pointerleave'].forEach(ev => cv.addEventListener(ev, () => { drawing = false; }));
+  function clearPad() { ctx.clearRect(0, 0, cv.width, cv.height); strokes = 0; }
+  function trimmedPng() {
+    // crop to the inked area with a small margin, on a white background
+    const { width, height } = cv, data = ctx.getImageData(0, 0, width, height).data;
+    let x0 = width, y0 = height, x1 = -1, y1 = -1;
+    for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) if (data[(y * width + x) * 4 + 3] > 0) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    if (x1 < 0) return null;
+    const m = 12; x0 = Math.max(0, x0 - m); y0 = Math.max(0, y0 - m); x1 = Math.min(width - 1, x1 + m); y1 = Math.min(height - 1, y1 + m);
+    const out = document.createElement('canvas'); out.width = x1 - x0 + 1; out.height = y1 - y0 + 1;
+    const o = out.getContext('2d'); o.fillStyle = '#fff'; o.fillRect(0, 0, out.width, out.height); o.drawImage(cv, x0, y0, out.width, out.height, 0, 0, out.width, out.height);
+    return out;
+  }
+  async function register(dataUrl) {
+    const bytes = await (await fetch(dataUrl)).arrayBuffer();
+    const dims = await new Promise(res => { const img = new Image(); img.onload = () => res({ w: img.naturalWidth, h: img.naturalHeight }); img.src = dataUrl; });
+    signatures.set(DRAWN.toLowerCase(), { name: DRAWN, bytes, ext: 'png', width: dims.w, height: dims.h });
+    if (!$('d_sig').value.trim() || $('d_sig').value.trim().toUpperCase() === 'SIG_DRAWN') { $('d_sig').value = 'SIG_DRAWN'; store.set('tbs_d_sig', 'SIG_DRAWN'); }
+    $('sigstatus').textContent = 'Using the drawn signature (SIG_DRAWN).';
+    printStatus();
+  }
+  $('sigclear').addEventListener('click', () => { clearPad(); signatures.delete(DRAWN.toLowerCase()); store.set('tbs_sig_drawn', ''); if ($('d_sig').value.trim().toUpperCase() === 'SIG_DRAWN') { $('d_sig').value = ''; store.set('tbs_d_sig', ''); } $('sigstatus').textContent = ''; printStatus(); });
+  $('siguse').addEventListener('click', async () => {
+    const out = trimmedPng(); if (!out) { $('sigstatus').textContent = 'Draw your signature first.'; return; }
+    const dataUrl = out.toDataURL('image/png'); store.set('tbs_sig_drawn', dataUrl); await register(dataUrl);
+  });
+  // restore a signature drawn earlier in this browser
+  const saved = store.get('tbs_sig_drawn');
+  if (saved) { const img = new Image(); img.onload = () => { const scale = Math.min(1, (cv.width - 40) / img.width, (cv.height - 40) / img.height); ctx.drawImage(img, 20, 20, img.width * scale, img.height * scale); strokes = 1; register(saved); }; img.src = saved; }
+})();
+
 wireDrop('sdrop', 'sfile', async files => {
   for (const f of files) {
     if (!/\.(jpe?g|png)$/i.test(f.name)) continue;

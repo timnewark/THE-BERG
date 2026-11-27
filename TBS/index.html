@@ -68,8 +68,31 @@
     <label class="drop" id="drop">
       <input type="file" id="file" accept=".xlsx,.xlsm,.xls,.csv">
       <div><b>Drop the Excel workbank here</b> or tap to choose</div>
-      <div class="hint">First sheet is used. Needs an <b>OS Ref</b> column. Blank <b>Postcode</b>, <b>What3Words</b> and <b>Hospital</b> cells are filled; anything already typed in is kept. Columns are added if missing.</div>
+      <div class="hint">First sheet is used. Blank <b>Postcode</b>, <b>What3Words</b> and <b>Hospital</b> cells are filled; anything already typed in is kept. Columns are added if missing.</div>
     </label>
+    <details style="margin-top:12px">
+      <summary>Columns the workbank needs</summary>
+      <div class="tablewrap" style="max-height:none;margin-top:8px">
+      <table>
+        <tr><th>Column heading</th><th>Used for</th><th>Needed?</th></tr>
+        <tr><td><b>Unique No.</b></td><td>Asset ID – goes into the TBS reference and the filename</td><td class="filled">Yes</td></tr>
+        <tr><td><b>ELR</b></td><td>Structure ref ({{STRUCTURE_REF}})</td><td class="filled">Yes</td></tr>
+        <tr><td><b>ID</b></td><td>Structure name, e.g. “AYT 43”</td><td class="filled">Yes, or Mileage + Chains</td></tr>
+        <tr><td><b>Mileage</b>, <b>Chains</b></td><td>Used when ID is blank, e.g. “AYT 12m 34c”</td><td>Only if no ID</td></tr>
+        <tr><td><b>YR6 Exam</b></td><td>Exam type; first three letters become the code (VIS, DET)</td><td class="filled">Yes</td></tr>
+        <tr><td><b>OS Ref</b></td><td>Grid ref – drives the postcode, what3words and A&amp;E lookup</td><td class="filled">Yes, for the lookup</td></tr>
+        <tr><td><b>Exam Area</b></td><td>{{GEO_LOC}}</td><td>If the template uses it</td></tr>
+        <tr><td><b>Date of works</b> / <b>Planned Month</b> / <b>Suggest Exam Date</b></td><td>{{WEEK_REF}}</td><td>If the template uses it</td></tr>
+        <tr><td><b>Planned Report Date</b></td><td>Overrides the report date entered below</td><td>Optional</td></tr>
+        <tr><td><b>Examiner</b>, <b>sigRef</b></td><td>Override the examiner and signature entered below, per row</td><td>Optional</td></tr>
+        <tr><td><b>Structure Type</b></td><td>Overrides the structure type entered below</td><td>Optional</td></tr>
+        <tr><td><b>Postcode</b>, <b>What3Words</b>, <b>Hospital</b></td><td>Filled by the lookup; type your own to override</td><td>Optional</td></tr>
+        <tr><td><b>Welfare</b></td><td>{{WELF_REF}} – nothing looks this up</td><td>Optional</td></tr>
+        <tr><td><b>WPP Ref</b>, <b>TBS Ref</b></td><td>Override the refs entered below, per row</td><td>Optional</td></tr>
+      </table>
+      </div>
+      <p class="hint">Headings are matched whatever the capitalisation. A row is skipped when Unique No., ELR, ID, Mileage, Chains and YR6 Exam are all blank, or when ELR reads “TM list” or “ASAP”. After loading, the page lists any headings it could not find.</p>
+    </details>
     <div class="row" style="margin-top:12px">
       <button class="primary" id="run" disabled>Look up blanks</button>
       <button class="ghost" id="download" disabled>Download filled workbook</button>
@@ -538,7 +561,9 @@ function loadFile(file) {
       fileName = file.name;
       if (!osCol) { $('status').textContent = `No OS Ref column found in "${sheetName}". Headings seen: ${headers.join(', ')}`; $('run').disabled = true; return; }
       const withRef = rows.filter(r => String(r[osCol]).trim()).length;
-      $('status').textContent = `${file.name}: sheet "${sheetName}", ${rows.length} rows, ${withRef} with an OS Ref (column "${osCol}").`;
+      const notFound = missingColumns().filter(n => !['POSTCODE_REF','W3W_REF','HOSP_REF','WELF_REF','WPP_REF','STRUC_TYPE','SIG_REF','DATE_REF','EXNR_REF'].includes(n));
+      $('status').textContent = `${file.name}: sheet "${sheetName}", ${rows.length} rows, ${withRef} with an OS Ref (column "${osCol}").` +
+        (notFound.length ? ` Headings not found (left blank): ${notFound.map(n => PLACEHOLDER_ALIASES[n][0]).join(', ')}.` : '');
       $('run').disabled = false; $('download').disabled = true; $('copy').disabled = true;
       printStatus();
       $('tablewrap').hidden = true;

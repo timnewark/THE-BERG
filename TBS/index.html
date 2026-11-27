@@ -82,7 +82,8 @@
         <tr><td><b>Exam type</b> <span class="kept">(or YR6 Exam)</span></td><td>++Exam type++; first three letters become the code (VIS, DET)</td><td class="filled">Yes</td></tr>
         <tr><td><b>OS grid ref</b> <span class="kept">(or OS Ref)</span></td><td>++OS grid ref++ – drives the postcode, what3words and A&amp;E lookup</td><td class="filled">Yes, for the lookup</td></tr>
         <tr><td><b>Exam area</b></td><td>++Exam area++</td><td>If the template uses it</td></tr>
-        <tr><td><b>Date of works</b> <span class="kept">(or Planned Month / Suggest Exam Date)</span></td><td>++Date of works++</td><td>If the template uses it</td></tr>
+        <tr><td><b>Date of works</b> <span class="kept">(or Planned Month / Suggest Exam Date)</span></td><td>++Date of works++, e.g. “Week 31”</td><td>If the template uses it</td></tr>
+        <tr><td><b>Exam date</b></td><td>++Exam date++ – the exact date, when known</td><td>Optional</td></tr>
         <tr><td><b>Report date</b> <span class="kept">(or Planned Report Date)</span></td><td>Overrides the report date entered below</td><td>Optional</td></tr>
         <tr><td><b>Examiner</b>, <b>Signature</b> <span class="kept">(or sigRef)</span></td><td>Override the examiner and signature entered below, per row</td><td>Optional</td></tr>
         <tr><td><b>Structure type</b></td><td>Overrides the structure type entered below</td><td>Optional</td></tr>
@@ -130,7 +131,7 @@
     </label>
     <details style="margin:8px 0">
       <summary>Placeholders the template can use</summary>
-      <p class="hint">Type these into the Word template exactly, including the plus signs: <b>++TBS reference++</b>, <b>++Structure++</b>, <b>++Structure type++</b>, <b>++Exam type++</b>, <b>++Report date++</b>, <b>++Date of works++</b>, <b>++Examiner++</b>, <b>++Signature++</b> (replaced by the image), <b>++Exam area++</b>, <b>++OS grid ref++</b>, <b>++Postcode++</b>, <b>++what3words++</b>, <b>++Nearest A&amp;E++</b>, <b>++Welfare++</b>, <b>++WPP reference++</b>, <b>++Asset ID++</b>, <b>++Mileage++</b>, <b>++Chains++</b>, <b>++Structure name++</b>.</p>
+      <p class="hint">Type these into the Word template exactly, including the plus signs: <b>++TBS reference++</b>, <b>++Structure++</b>, <b>++Structure type++</b>, <b>++Exam type++</b>, <b>++Report date++</b>, <b>++Date of works++</b>, <b>++Exam date++</b>, <b>++Examiner++</b>, <b>++Signature++</b> (replaced by the image), <b>++Exam area++</b>, <b>++OS grid ref++</b>, <b>++Postcode++</b>, <b>++what3words++</b>, <b>++Nearest A&amp;E++</b>, <b>++Welfare++</b>, <b>++WPP reference++</b>, <b>++Asset ID++</b>, <b>++Mileage++</b>, <b>++Chains++</b>, <b>++Structure name++</b>.</p>
     </details>
     <p class="hint">Building runs the location lookup first if you haven't already, so postcode, what3words and nearest A&amp;E are in the documents. <a href="#" id="owntpl">Use a different template…</a></p>
     <label class="drop" id="tdrop" hidden>
@@ -561,7 +562,7 @@ function loadFile(file) {
       fileName = file.name;
       if (!osCol) { $('status').textContent = `No OS Ref column found in "${sheetName}". Headings seen: ${headers.join(', ')}`; $('run').disabled = true; return; }
       const withRef = rows.filter(r => String(r[osCol]).trim()).length;
-      const notFound = missingColumns().filter(n => !['POSTCODE_REF','W3W_REF','HOSP_REF','WELF_REF','WPP_REF','STRUC_TYPE','SIG_REF','DATE_REF','EXNR_REF'].includes(n));
+      const notFound = missingColumns().filter(n => !['POSTCODE_REF','W3W_REF','HOSP_REF','WELF_REF','WPP_REF','STRUC_TYPE','SIG_REF','DATE_REF','EXNR_REF','EXAM_DATE'].includes(n));
       $('status').textContent = `${file.name}: sheet "${sheetName}", ${rows.length} rows, ${withRef} with an OS Ref (column "${osCol}").` +
         (notFound.length ? ` Headings not found (left blank): ${notFound.map(n => PLACEHOLDER_ALIASES[n][0]).join(', ')}.` : '');
       $('run').disabled = false; $('download').disabled = true; $('copy').disabled = true;
@@ -652,6 +653,7 @@ const PLACEHOLDER_ALIASES = {
   DATE_REF: ['Report date', 'Planned Report Date'],
   STRUCTURE_REF: ['ELR', 'Structure'],
   WEEK_REF: ['Date of works', 'WEEK_REF', 'Week Ref', 'Planned Month', 'SUGGEST Exam Date', 'Suggest Exam Date'],
+  EXAM_DATE: ['Exam date', 'Exact date', 'EXAM_DATE'],
   EXNR_REF: ['Examiner'],
   SIG_REF: ['Signature', 'sigRef', 'SIG_REF', 'Sig Ref', 'Signature Ref'],
   E_TYPE: ['Exam type', 'YR6 Exam'],
@@ -670,7 +672,7 @@ const PLACEHOLDER_ALIASES = {
 // Friendly placeholder names: ++Examiner++ in the template means the same as {{EXNR_REF}}.
 const FRIENDLY = {
   TBS_REF: 'TBS reference', STRUCTURE_REF: 'Structure', STRUC_TYPE: 'Structure type', E_TYPE: 'Exam type',
-  DATE_REF: 'Report date', WEEK_REF: 'Date of works', EXNR_REF: 'Examiner', SIG_REF: 'Signature', GEO_LOC: 'Exam area',
+  DATE_REF: 'Report date', WEEK_REF: 'Date of works', EXAM_DATE: 'Exam date', EXNR_REF: 'Examiner', SIG_REF: 'Signature', GEO_LOC: 'Exam area',
   OS_REF: 'OS grid ref', POSTCODE_REF: 'Postcode', W3W_REF: 'what3words', HOSP_REF: 'Nearest A&E', WELF_REF: 'Welfare',
   WPP_REF: 'WPP reference', ASSET_ID: 'Asset ID', MILEAGE: 'Mileage', CHAINS: 'Chains', STRUCNAME: 'Structure name',
 };

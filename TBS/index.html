@@ -126,6 +126,7 @@
     <label class="drop" id="tdrop">
       <input type="file" id="tfile" accept=".docx">
       <div><b>Drop the Word TBS template here</b> or tap to choose</div>
+      <div class="hint">Building runs the location lookup first if you haven't already, so postcode, what3words and nearest A&amp;E are in the documents.</div>
       <div class="hint">A .docx with {{WPP_REF}}, {{TBS_REF}}, {{STRUCTURE_REF}}, {{SIG_REF}} … placeholders. Headers, footers, tables and text boxes are all filled.</div>
     </label>
     <div class="status" id="tstatus" style="margin-top:8px"></div>
@@ -565,6 +566,7 @@ function loadFile(file) {
       $('status').textContent = `${file.name}: sheet "${sheetName}", ${rows.length} rows, ${withRef} with an OS Ref (column "${osCol}").` +
         (notFound.length ? ` Headings not found (left blank): ${notFound.map(n => PLACEHOLDER_ALIASES[n][0]).join(', ')}.` : '');
       $('run').disabled = false; $('download').disabled = true; $('copy').disabled = true;
+      lookedUp = false;
       printStatus();
       $('tablewrap').hidden = true;
     } catch (err) { $('status').textContent = 'Could not read that file: ' + err.message; }
@@ -577,7 +579,8 @@ const drop = $('drop');
 ['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
 drop.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) loadFile(f); });
 
-$('run').onclick = async () => {
+let lookedUp = false;
+async function lookupBlanks() {
   const key = $('key').value.trim();
   const osCol = findHeader(ALIASES.os);
   const pcCol = findHeader(ALIASES.postcode) || 'Postcode';
@@ -607,7 +610,9 @@ $('run').onclick = async () => {
   $('status').textContent = `Done: ${n} row(s) looked up.` + (key ? '' : ' No what3words key, so What3Words left blank.');
   renderTable(pcCol, w3Col, hoCol);
   $('download').disabled = false; $('copy').disabled = false; $('run').disabled = false;
-};
+  lookedUp = true;
+}
+$('run').onclick = lookupBlanks;
 
 function cell(v) {
   if (v.filled) return `<td class="filled">${esc(v.filled)}</td>`;
@@ -853,6 +858,11 @@ $('print').onclick = async () => {
   let created = 0;
   const missing = missingColumns();
   $('print').disabled = true;
+  // Fill postcode / what3words / A&E from the OS Ref first, unless already done for this workbank.
+  if (!lookedUp && findHeader(ALIASES.os)) {
+    $('pstatus').textContent = 'Looking up postcode, what3words and A&E from the OS Refs first…';
+    await lookupBlanks();
+  }
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
     const rep = buildReplacements(row);

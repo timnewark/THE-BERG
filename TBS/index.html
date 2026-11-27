@@ -123,11 +123,16 @@
 
   <div class="card">
     <h2>3. Print the TBS documents</h2>
-    <label class="drop" id="tdrop">
+    <label>Template
+      <select id="tsel" style="width:100%;font:inherit;padding:12px;border:1px solid var(--line);border-radius:10px;background:#fff;margin-top:4px">
+        <option value="templates/XEIAD-SSTBS-Y5-6-HRE-VIS-ALL-ELR-ID_-_TEMPLATE.docx">XEIAD-SSTBS-Y5-6-HRE-VIS-ALL (ELR / ID)</option>
+      </select>
+    </label>
+    <p class="hint">Building runs the location lookup first if you haven't already, so postcode, what3words and nearest A&amp;E are in the documents. <a href="#" id="owntpl">Use a different template…</a></p>
+    <label class="drop" id="tdrop" hidden>
       <input type="file" id="tfile" accept=".docx">
-      <div><b>Drop the Word TBS template here</b> or tap to choose</div>
-      <div class="hint">Building runs the location lookup first if you haven't already, so postcode, what3words and nearest A&amp;E are in the documents.</div>
-      <div class="hint">A .docx with {{WPP_REF}}, {{TBS_REF}}, {{STRUCTURE_REF}}, {{SIG_REF}} … placeholders. Headers, footers, tables and text boxes are all filled.</div>
+      <div><b>Drop a Word TBS template here</b> or tap to choose</div>
+      <div class="hint">A .docx with {{TBS_REF}}, {{STRUCTURE_REF}}, {{SIG_REF}} … placeholders. Headers, footers and tables are all filled.</div>
     </label>
     <div class="status" id="tstatus" style="margin-top:8px"></div>
     <div class="row" style="margin-top:12px">
@@ -149,15 +154,6 @@
     </details>
   </div>
 
-  <div class="card">
-    <details id="keybox">
-      <summary>what3words: using the site's own key</summary>
-      <div style="margin-top:10px">
-        <input type="password" id="key" placeholder="Optional: your own what3words API key" autocomplete="off">
-        <p class="hint">Nothing to set up. If the site key ever stops working, a key of your own from <a href="https://developer.what3words.com/" target="_blank" rel="noopener">developer.what3words.com</a> pasted here takes over (kept only in this browser).</p>
-      </div>
-    </details>
-  </div>
   <p class="hint">Grid refs are converted at the centre of their square (a 6-figure ref is a 100 m square). Postcode is the nearest within 2 km (postcodes.io). A&amp;E is the nearest consultant-led 24-hour emergency department from a built-in UK list (Nov 2026), straight-line distance. Check before relying on any of it for a RAMS.</p>
 </main>
 <script>
@@ -511,8 +507,6 @@ const $ = id => document.getElementById(id);
 // what3words API key, restricted to the-berg.uk in the what3words console (HTTP referrer).
 const W3W_KEY = 'S8HZ18YC';
 const store = { get(k){ try { return localStorage.getItem(k) || ''; } catch(e){ return ''; } }, set(k,v){ try { localStorage.setItem(k,v); } catch(e){} } };
-$('key').value = store.get('w3w_key');
-$('key').addEventListener('change', () => store.set('w3w_key', $('key').value.trim()));
 function esc(s){ return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 const cache = new Map();
 async function lookupAll(ref, key) {
@@ -582,7 +576,7 @@ drop.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) l
 
 let lookedUp = false;
 async function lookupBlanks() {
-  const key = $('key').value.trim() || W3W_KEY;
+  const key = W3W_KEY;
   const osCol = findHeader(ALIASES.os);
   const pcCol = findHeader(ALIASES.postcode) || 'Postcode';
   const w3Col = findHeader(ALIASES.w3w) || 'What3Words';
@@ -674,6 +668,16 @@ const IMAGE_REL = 'http://schemas.openxmlformats.org/officeDocument/2006/relatio
 const SIGNATURE_WIDTH_EMU = 10 * 36000;   // 10 mm
 
 let templateBytes = null, templateName = '';
+// The site template is fetched on first use; a dropped-in file replaces it.
+async function ensureTemplate() {
+  if (templateBytes) return;
+  const path = $('tsel').value;
+  const r = await fetch(path);
+  if (!r.ok) throw new Error('Could not load the template from the site (' + r.status + ')');
+  templateBytes = await r.arrayBuffer(); templateName = path.split('/').pop();
+}
+$('tsel').addEventListener('change', () => { templateBytes = null; templateName = ''; printStatus(); });
+$('owntpl').addEventListener('click', e => { e.preventDefault(); $('tdrop').hidden = false; });
 const signatures = new Map();   // lower-case file name -> { name, bytes, ext, width, height }
 
 ['d_wpp','d_tbsprefix','d_date','d_exnr','d_structype','d_sig'].forEach(id => {
@@ -691,10 +695,10 @@ function wireDrop(dropId, inputId, onFiles) {
 }
 function printStatus() {
   const parts = [];
-  parts.push(templateBytes ? `Template: ${templateName}` : 'No template yet');
+  parts.push(templateBytes ? `Template: ${templateName}` : `Template: ${$('tsel').options[$('tsel').selectedIndex].text}`);
   parts.push(signatures.size ? `Signatures: ${[...signatures.values()].map(s => s.name).join(', ')}` : 'No signatures (SIG_REF will be left blank)');
   $('tstatus').textContent = parts.join(' · ');
-  $('print').disabled = !(templateBytes && rows.length);
+  $('print').disabled = !rows.length;
 }
 wireDrop('tdrop', 'tfile', async files => {
   const f = files.find(f => /\.docx$/i.test(f.name)); if (!f) { $('tstatus').textContent = 'That is not a .docx'; return; }
@@ -859,6 +863,7 @@ $('print').onclick = async () => {
   let created = 0;
   const missing = missingColumns();
   $('print').disabled = true;
+  try { await ensureTemplate(); } catch (e) { $('pstatus').textContent = e.message; $('print').disabled = false; return; }
   // Fill postcode / what3words / A&E from the OS Ref first, unless already done for this workbank.
   if (!lookedUp && findHeader(ALIASES.os)) {
     $('pstatus').textContent = 'Looking up postcode, what3words and A&E from the OS Refs first…';
@@ -898,7 +903,7 @@ $('print').onclick = async () => {
 
 // ------------------------------------------------------------------ typed refs
 $('go').onclick = async () => {
-  const key = $('key').value.trim() || W3W_KEY;
+  const key = W3W_KEY;
   const lines = $('refs').value.split(/\n/).map(s => s.trim()).filter(Boolean);
   const out = $('out'); out.innerHTML = '';
   for (const line of lines) {

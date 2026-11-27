@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="512" height="512">
+  <rect width="64" height="64" rx="14" fill="#40545C"/>
+  <!-- parapet line -->
+  <rect x="7" y="19" width="50" height="3" fill="#ffffff"/>
+  <!-- deck and piers with two tall arches cut out -->
+  <path fill="#ffffff" fill-rule="evenodd" d="M7,24 H57 V52 H51 V40 C51,33 46.5,29 41,29 C35.5,29 32,33 32,40 V52 H32 V40 C32,33 28.5,29 23,29 C17.5,29 13,33 13,40 V52 H7 Z"/>
+  <!-- accent dot, as in "The BERG." -->
+  <circle cx="52" cy="12" r="4" fill="#D7A55F"/>
+</svg>

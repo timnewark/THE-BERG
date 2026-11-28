@@ -63,18 +63,20 @@
 <header>
   <a href="../">← The BERG</a>
   <h1>TBS builder</h1>
-  <p>Drop in the workbank, fill postcode / what3words / A&amp;E / welfare from the OS refs, then print the TBS documents.</p>
+  <p>Drop in the works package plan (WPP), fill postcode / what3words / A&amp;E / welfare from the OS refs, then print the TBS documents.</p>
 </header>
 <main>
   <div class="card">
-    <h2>1. Workbank (Excel)</h2>
+    <h2>1. Select works package plan (WPP)</h2>
     <label class="drop" id="drop">
       <input type="file" id="file" accept=".xlsx,.xlsm,.xls,.csv">
-      <div><b>Drop the Excel workbank here</b> or tap to choose</div>
-      <div class="hint">First sheet is used. Blank <b>Postcode</b>, <b>what3words</b>, <b>Nearest A&amp;E</b> and <b>Welfare</b> cells are filled; anything already typed in is kept. Columns are added if missing.</div>
+      <div><b>Drop the WPP Excel file here</b> or tap to choose</div>
+      <div class="hint" style="margin-top:8px">Required columns (first sheet): <b>++Asset ID++</b>, <b>++ELR++</b>, <b>++Structure name++</b> (or <b>++Mileage++</b> + <b>++Chains++</b>), <b>++Exam type++</b>, <b>++OS grid ref++</b></div>
+      <div class="hint">Optional: <b>++Exam area++</b>, <b>++Date of works++</b>, <b>++Exam date++</b>, <b>++Welfare++</b>, <b>++Postcode++</b>, <b>++what3words++</b>, <b>++Nearest A&amp;E++</b></div>
+      <div class="hint">Blank Postcode, what3words, Nearest A&amp;E and Welfare cells are filled from the OS grid ref; anything already typed in is kept. Columns are added if missing.</div>
     </label>
     <details style="margin-top:12px">
-      <summary>Columns the workbank needs</summary>
+      <summary>All columns explained</summary>
       <div class="tablewrap" style="max-height:none;margin-top:8px">
       <table>
         <tr><th>Column heading (with or without the ++)</th><th>Used for</th><th>Needed?</th></tr>
